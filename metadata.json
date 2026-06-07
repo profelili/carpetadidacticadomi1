@@ -1,0 +1,6 @@
+{
+  "name": "Carpeta Didáctica",
+  "description": "Carpeta Didáctica pedagógica para educación domiciliaria y hospitalaria. Permite gestionar listas de alumnos, planes semanales de asignaturas y planificaciones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
