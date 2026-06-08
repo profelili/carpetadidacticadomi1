@@ -7,6 +7,7 @@ interface PlanningModalProps {
   onAddActivity: (newAct: Omit<ActivityPlan, 'id'>) => void;
   activityToEdit?: ActivityPlan;
   onUpdateActivity?: (updatedAct: ActivityPlan) => void;
+  defaultStudentId?: string;
 }
 
 export const PlanningModal: React.FC<PlanningModalProps> = ({
@@ -15,8 +16,9 @@ export const PlanningModal: React.FC<PlanningModalProps> = ({
   onAddActivity,
   activityToEdit,
   onUpdateActivity,
+  defaultStudentId,
 }) => {
-  const [studentId, setStudentId] = useState<string>(activityToEdit?.studentId || students[0]?.id || '');
+  const [studentId, setStudentId] = useState<string>(activityToEdit?.studentId || defaultStudentId || students[0]?.id || '');
   const [materia, setMateria] = useState<string>(activityToEdit?.materia || 'Matemática');
   const [tema, setTema] = useState<string>(activityToEdit?.tema || '');
   const [descripcion, setDescripcion] = useState<string>(activityToEdit?.descripcion || '');

@@ -11,6 +11,7 @@ import { PlanningModal } from './components/PlanningModal';
 import { INITIAL_STUDENTS, INITIAL_ACTIVITIES, DEFAULT_RESOURCES } from './data';
 import { Student, ActivityPlan, ResourceMaterial } from './types';
 import { saveActivitiesToDB, loadActivitiesFromDB } from './lib/db';
+import { ResourceViewerModal } from './components/ResourceViewerModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('inicio');
@@ -39,6 +40,25 @@ export default function App() {
   const [isPlanningModalOpen, setIsPlanningModalOpen] = useState(false);
   const [activityToEdit, setActivityToEdit] = useState<ActivityPlan | undefined>(undefined);
   const [activityToDeleteId, setActivityToDeleteId] = useState<string | null>(null);
+  const [isDBLoaded, setIsDBLoaded] = useState(false);
+  const [preselectedStudentId, setPreselectedStudentId] = useState<string | undefined>(undefined);
+
+  const [selectedDomicilioStudentId, setSelectedDomicilioStudentId] = useState<string>('');
+  const [selectedHospitalStudentId, setSelectedHospitalStudentId] = useState<string>('');
+  const [selectedHogarStudentId, setSelectedHogarStudentId] = useState<string>('');
+  const [selectedResourceForPreview, setSelectedResourceForPreview] = useState<ResourceMaterial | null>(null);
+
+  // Synchronize first students when students change
+  useEffect(() => {
+    if (students && students.length > 0) {
+      const dom = students.find(s => s.contexto === 'Domicilio');
+      const hosp = students.find(s => s.contexto === 'Hospital');
+      const hog = students.find(s => s.contexto === 'Hogar');
+      if (dom && !selectedDomicilioStudentId) setSelectedDomicilioStudentId(dom.id);
+      if (hosp && !selectedHospitalStudentId) setSelectedHospitalStudentId(hosp.id);
+      if (hog && !selectedHogarStudentId) setSelectedHogarStudentId(hog.id);
+    }
+  }, [students, selectedDomicilioStudentId, selectedHospitalStudentId, selectedHogarStudentId]);
 
   // Load activities from IndexedDB on mount to restore items with attachments
   useEffect(() => {
@@ -50,6 +70,8 @@ export default function App() {
         }
       } catch (err) {
         console.error('Failed to load activities from IndexedDB, falling back to localStorage:', err);
+      } finally {
+        setIsDBLoaded(true);
       }
     };
     initDB();
@@ -65,6 +87,8 @@ export default function App() {
   }, [students]);
 
   useEffect(() => {
+    if (!isDBLoaded) return; // Prevent overwriting DB with lightweight/old version on mount
+
     // 1. Direct save of full data to IndexedDB
     saveActivitiesToDB(activities).catch(err => {
       console.error('Failed to save activities to IndexedDB:', err);
@@ -88,9 +112,14 @@ export default function App() {
         console.error('Failed to save light activities to localStorage:', innerError);
       }
     }
-  }, [activities]);
+  }, [activities, isDBLoaded]);
 
   // Handlers
+  const handleOpenPlanningModal = (studentId?: string) => {
+    setPreselectedStudentId(studentId);
+    setIsPlanningModalOpen(true);
+  };
+
   const handleAddActivity = (newAct: Omit<ActivityPlan, 'id'>) => {
     const actId = 'act-' + (activities.length + 1) + '-' + Date.now();
     const act: ActivityPlan = {
@@ -98,6 +127,21 @@ export default function App() {
       id: actId,
     };
     setActivities([act, ...activities]);
+
+    // Automatically navigate to correct tab & select correct student
+    const student = students.find(s => s.id === act.studentId);
+    if (student) {
+      if (student.contexto === 'Domicilio') {
+        setActiveTab('domiciliarios');
+        setSelectedDomicilioStudentId(student.id);
+      } else if (student.contexto === 'Hospital') {
+        setActiveTab('hospitalarios');
+        setSelectedHospitalStudentId(student.id);
+      } else if (student.contexto === 'Hogar') {
+        setActiveTab('hogar');
+        setSelectedHogarStudentId(student.id);
+      }
+    }
   };
 
   const handleEditActivity = (act: ActivityPlan) => {
@@ -108,6 +152,21 @@ export default function App() {
   const handleUpdateActivity = (updatedAct: ActivityPlan) => {
     setActivities(prev => prev.map(act => act.id === updatedAct.id ? updatedAct : act));
     setActivityToEdit(undefined);
+
+    // Automatically navigate to correct tab & select correct student
+    const student = students.find(s => s.id === updatedAct.studentId);
+    if (student) {
+      if (student.contexto === 'Domicilio') {
+        setActiveTab('domiciliarios');
+        setSelectedDomicilioStudentId(student.id);
+      } else if (student.contexto === 'Hospital') {
+        setActiveTab('hospitalarios');
+        setSelectedHospitalStudentId(student.id);
+      } else if (student.contexto === 'Hogar') {
+        setActiveTab('hogar');
+        setSelectedHogarStudentId(student.id);
+      }
+    }
   };
 
   const handleDeleteActivity = (id: string) => {
@@ -137,9 +196,7 @@ export default function App() {
   };
 
   const handleDownloadResource = (res: ResourceMaterial) => {
-    alert(
-      `📥 Recurso descargado exitosamente:\n"${res.titulo}" para el área de ${res.materia}.\nSe ha guardado una copia PDF adaptada en tu carpeta pedagógica de Google Drive.`
-    );
+    setSelectedResourceForPreview(res);
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
@@ -159,7 +216,7 @@ export default function App() {
             students={students}
             resources={resources}
             setActiveTab={setActiveTab}
-            openPlanningModal={() => setIsPlanningModalOpen(true)}
+            openPlanningModal={() => handleOpenPlanningModal()}
             onDownloadResource={handleDownloadResource}
           />
         );
@@ -168,9 +225,11 @@ export default function App() {
           <DomiciliariosView
             students={students}
             activities={activities}
-            onOpenPlanningModal={() => setIsPlanningModalOpen(true)}
+            onOpenPlanningModal={handleOpenPlanningModal}
             onEditActivity={handleEditActivity}
             onDeleteActivity={handleDeleteActivity}
+            selectedStudentId={selectedDomicilioStudentId}
+            onSelectStudent={setSelectedDomicilioStudentId}
           />
         );
       case 'hospitalarios':
@@ -178,9 +237,11 @@ export default function App() {
           <HospitalariosView
             students={students}
             activities={activities}
-            onOpenPlanningModal={() => setIsPlanningModalOpen(true)}
+            onOpenPlanningModal={handleOpenPlanningModal}
             onEditActivity={handleEditActivity}
             onDeleteActivity={handleDeleteActivity}
+            selectedStudentId={selectedHospitalStudentId}
+            onSelectStudent={setSelectedHospitalStudentId}
           />
         );
       case 'hogar':
@@ -188,9 +249,11 @@ export default function App() {
           <HogarView
             students={students}
             activities={activities}
-            onOpenPlanningModal={() => setIsPlanningModalOpen(true)}
+            onOpenPlanningModal={handleOpenPlanningModal}
             onEditActivity={handleEditActivity}
             onDeleteActivity={handleDeleteActivity}
+            selectedStudentId={selectedHogarStudentId}
+            onSelectStudent={setSelectedHogarStudentId}
           />
         );
       case 'panel':
@@ -208,7 +271,7 @@ export default function App() {
             students={students}
             resources={resources}
             setActiveTab={setActiveTab}
-            openPlanningModal={() => setIsPlanningModalOpen(true)}
+            openPlanningModal={() => handleOpenPlanningModal()}
             onDownloadResource={handleDownloadResource}
           />
         );
@@ -222,7 +285,7 @@ export default function App() {
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        openPlanningModal={() => setIsPlanningModalOpen(true)}
+        openPlanningModal={() => handleOpenPlanningModal()}
       />
 
       {/* Mobile Top Header */}
@@ -252,7 +315,7 @@ export default function App() {
       <BottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        openPlanningModal={() => setIsPlanningModalOpen(true)}
+        openPlanningModal={() => handleOpenPlanningModal()}
       />
 
       {/* Global Activity Planning Modal */}
@@ -261,11 +324,13 @@ export default function App() {
           onClose={() => {
             setIsPlanningModalOpen(false);
             setActivityToEdit(undefined);
+            setPreselectedStudentId(undefined);
           }}
           students={students}
           onAddActivity={handleAddActivity}
           activityToEdit={activityToEdit}
           onUpdateActivity={handleUpdateActivity}
+          defaultStudentId={preselectedStudentId}
         />
       )}
 
@@ -304,6 +369,13 @@ export default function App() {
             </div>
           </motion.div>
         </div>
+      )}
+
+      {selectedResourceForPreview && (
+        <ResourceViewerModal
+          resource={selectedResourceForPreview}
+          onClose={() => setSelectedResourceForPreview(null)}
+        />
       )}
     </div>
   );

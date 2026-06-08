@@ -94,9 +94,11 @@ const renderAttachedFiles = (files?: AttachedFile[]) => {
 interface DomiciliariosViewProps {
   students: Student[];
   activities: ActivityPlan[];
-  onOpenPlanningModal: () => void;
+  onOpenPlanningModal: (studentId?: string) => void;
   onEditActivity?: (act: ActivityPlan) => void;
   onDeleteActivity?: (id: string) => void;
+  selectedStudentId?: string;
+  onSelectStudent?: (id: string) => void;
 }
 
 export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
@@ -105,11 +107,19 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
   onOpenPlanningModal,
   onEditActivity,
   onDeleteActivity,
+  selectedStudentId: selectedStudentIdProp,
+  onSelectStudent,
 }) => {
   const domiciliarios = students.filter(s => s.contexto === 'Domicilio');
   const [selectedStudentId, setSelectedDayStudentId] = useState<string>(
-    domiciliarios[0]?.id || ''
+    selectedStudentIdProp || domiciliarios[0]?.id || ''
   );
+
+  useEffect(() => {
+    if (selectedStudentIdProp) {
+      setSelectedDayStudentId(selectedStudentIdProp);
+    }
+  }, [selectedStudentIdProp]);
 
   const selectedStudent = domiciliarios.find(s => s.id === selectedStudentId);
 
@@ -202,6 +212,9 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
                 onClick={() => {
                   setSelectedDayStudentId(student.id);
                   setShowVisitForm(false);
+                  if (onSelectStudent) {
+                    onSelectStudent(student.id);
+                  }
                 }}
                 className={`w-full text-left p-5 rounded-2xl border transition-all student-shadow group ${
                   isSelected
@@ -276,7 +289,7 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
               </div>
               
               <button
-                onClick={onOpenPlanningModal}
+                onClick={() => onOpenPlanningModal(selectedStudentId)}
                 className="bg-primary text-on-primary font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:opacity-90 transition-all self-start sm:self-auto shadow-sm"
               >
                 <span className="material-symbols-outlined text-[16px]">add</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Student, ActivityPlan, AttachedFile } from '../types';
 import { parseGoogleDriveUrl } from '../lib/drive';
@@ -94,9 +94,11 @@ const renderAttachedFiles = (files?: AttachedFile[]) => {
 interface HospitalariosViewProps {
   students: Student[];
   activities: ActivityPlan[];
-  onOpenPlanningModal: () => void;
+  onOpenPlanningModal: (studentId?: string) => void;
   onEditActivity?: (act: ActivityPlan) => void;
   onDeleteActivity?: (id: string) => void;
+  selectedStudentId?: string;
+  onSelectStudent?: (id: string) => void;
 }
 
 export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
@@ -105,17 +107,29 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
   onOpenPlanningModal,
   onEditActivity,
   onDeleteActivity,
+  selectedStudentId: selectedStudentIdProp,
+  onSelectStudent,
 }) => {
   const hospitalarios = students.filter(s => s.contexto === 'Hospital');
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
-    hospitalarios[0]?.id || ''
+    selectedStudentIdProp || hospitalarios[0]?.id || ''
   );
+
+  useEffect(() => {
+    if (selectedStudentIdProp) {
+      setSelectedStudentId(selectedStudentIdProp);
+    }
+  }, [selectedStudentIdProp]);
 
   const selectedStudent = hospitalarios.find(s => s.id === selectedStudentId);
 
   // Filter activities for this selected student
   const studentActivities = activities.filter(
     a => a.studentId === selectedStudentId
+  );
+
+  const otherActivities = studentActivities.filter(
+    a => !['Matemática', 'Prácticas del Lenguaje', 'Expresión Artística'].includes(a.materia)
   );
 
   // Modals inside Hospitalarios
@@ -152,7 +166,12 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
             return (
               <button
                 key={student.id}
-                onClick={() => setSelectedStudentId(student.id)}
+                onClick={() => {
+                  setSelectedStudentId(student.id);
+                  if (onSelectStudent) {
+                    onSelectStudent(student.id);
+                  }
+                }}
                 className={`w-full text-left p-4 rounded-xl shadow-sm border transition-all ${
                   isSelected
                     ? 'glass-card border-primary ring-1 ring-primary/20 bg-surface-container-high'
@@ -191,7 +210,7 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
               </div>
               
               <button
-                onClick={onOpenPlanningModal}
+                onClick={() => onOpenPlanningModal(selectedStudentId)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-full font-bold text-xs hover:shadow-lg transition-all active:scale-95 shadow-sm"
               >
                 <span className="material-symbols-outlined text-[16px]">edit_calendar</span>
@@ -579,6 +598,127 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
               ) : (
                 <div className="md:col-span-2 p-6 border border-outline-variant bg-white rounded-xl text-center italic text-on-surface-variant">
                   Ninguna actividad transdisciplinar lúdica adjunta.
+                </div>
+              )}
+
+              {/* Otras Materias / Ciencias Card */}
+              {otherActivities.length > 0 && (
+                <div className="md:col-span-2 space-y-4 text-left">
+                  <h3 className="font-bold text-on-surface text-base flex items-center gap-1.5 mt-4">
+                    <span className="material-symbols-outlined text-primary">science</span>
+                    Ciencias Sociales, Naturales y Otras Planificaciones
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {otherActivities.map(act => (
+                      <article key={act.id} className="p-6 rounded-xl border border-outline-variant bg-white hover:shadow-md transition-shadow flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <span className="p-2 bg-primary-container/10 text-primary rounded-lg">
+                                <span className="material-symbols-outlined text-lg">school</span>
+                              </span>
+                              <h4 className="font-bold text-on-surface text-base">{act.materia}</h4>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="bg-secondary-container text-on-secondary-container text-[10px] px-2.5 py-0.5 rounded-full font-bold">
+                                {act.estado}
+                              </span>
+                              {onEditActivity && (
+                                <button
+                                  onClick={() => onEditActivity(act)}
+                                  className="w-7 h-7 flex items-center justify-center text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer border border-primary/20 bg-primary/5 shrink-0"
+                                  title="Modificar planificación"
+                                >
+                                  <span className="material-symbols-outlined text-base">edit</span>
+                                </button>
+                              )}
+                              {onDeleteActivity && (
+                                <button
+                                  onClick={() => onDeleteActivity(act.id)}
+                                  className="w-7 h-7 flex items-center justify-center text-error hover:bg-error/15 rounded-full transition-colors cursor-pointer border border-error/20 bg-error/5 shrink-0"
+                                  title="Eliminar planificación"
+                                >
+                                  <span className="material-symbols-outlined text-base">delete</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <p className="font-bold text-on-surface text-sm mb-1">{act.tema}</p>
+                            <div className="text-xs text-on-surface-variant leading-relaxed whitespace-pre-wrap">
+                              {renderTextWithLinks(act.descripcion)}
+                            </div>
+                            {renderAttachedFiles(act.attachedFiles)}
+                          </div>
+
+                          {act.enlaceUrl && (() => {
+                            const driveInfo = parseGoogleDriveUrl(act.enlaceUrl);
+                            if (driveInfo) {
+                              return (
+                                <div className="mt-3 space-y-2">
+                                  <a
+                                    href={act.enlaceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 bg-emerald-550/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors border border-emerald-500/20 shadow-xs cursor-pointer"
+                                  >
+                                    <span className="material-symbols-outlined text-xs">{driveInfo.icon}</span>
+                                    <span>{act.enlaceTitulo || driveInfo.typeName}</span>
+                                  </a>
+                                  {driveInfo.previewUrl && (
+                                    <div className="relative group overflow-hidden rounded-xl border border-outline-variant/30 max-h-48 bg-neutral-100 flex justify-center">
+                                      <img
+                                        src={driveInfo.previewUrl}
+                                        alt="Vista previa de Google Drive"
+                                        className="max-h-48 object-contain hover:scale-102 transition-transform duration-300"
+                                        referrerPolicy="no-referrer"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                      />
+                                      <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 text-white text-[9px] uppercase font-semibold px-2 py-0.5 rounded-md backdrop-blur-xs">
+                                        <span className="material-symbols-outlined text-xs text-emerald-400">add_to_drive</span>
+                                        <span>Google Drive</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="mt-3">
+                                <a
+                                  href={act.enlaceUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors border border-primary/20"
+                                >
+                                  <span className="material-symbols-outlined text-xs">link</span>
+                                  <span>{act.enlaceTitulo || 'Ver material'}</span>
+                                </a>
+                              </div>
+                            );
+                          })()}
+
+                          {act.recursoClave && (
+                            <div className="flex flex-wrap gap-2 mt-4 font-mono text-[10px] text-primary bg-primary/5 px-2 py-1 rounded-lg w-max">
+                              Recurso clave: {act.recursoClave}
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {act.tags.map(tag => (
+                              <span key={tag} className="bg-surface-container text-on-surface-variant text-[10px] px-2.5 py-0.5 rounded-full">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

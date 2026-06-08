@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Student, ActivityPlan, AttachedFile } from '../types';
 import { parseGoogleDriveUrl } from '../lib/drive';
@@ -94,9 +94,11 @@ const renderAttachedFiles = (files?: AttachedFile[]) => {
 interface HogarViewProps {
   students: Student[];
   activities: ActivityPlan[];
-  onOpenPlanningModal: () => void;
+  onOpenPlanningModal: (studentId?: string) => void;
   onEditActivity?: (act: ActivityPlan) => void;
   onDeleteActivity?: (id: string) => void;
+  selectedStudentId?: string;
+  onSelectStudent?: (id: string) => void;
 }
 
 export const HogarView: React.FC<HogarViewProps> = ({
@@ -105,11 +107,19 @@ export const HogarView: React.FC<HogarViewProps> = ({
   onOpenPlanningModal,
   onEditActivity,
   onDeleteActivity,
+  selectedStudentId: selectedStudentIdProp,
+  onSelectStudent,
 }) => {
   const hogarStudents = students.filter(s => s.contexto === 'Hogar');
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
-    hogarStudents[0]?.id || ''
+    selectedStudentIdProp || hogarStudents[0]?.id || ''
   );
+
+  useEffect(() => {
+    if (selectedStudentIdProp) {
+      setSelectedStudentId(selectedStudentIdProp);
+    }
+  }, [selectedStudentIdProp]);
 
   const selectedStudent = hogarStudents.find(s => s.id === selectedStudentId);
 
@@ -182,7 +192,12 @@ export const HogarView: React.FC<HogarViewProps> = ({
             return (
               <button
                 key={student.id}
-                onClick={() => setSelectedStudentId(student.id)}
+                onClick={() => {
+                  setSelectedStudentId(student.id);
+                  if (onSelectStudent) {
+                    onSelectStudent(student.id);
+                  }
+                }}
                 className={`w-full text-left p-3 rounded-xl border card-shadow flex items-center justify-between transition-all group ${
                   isSelected
                     ? 'border-primary ring-2 ring-primary/10 bg-white'
@@ -223,7 +238,7 @@ export const HogarView: React.FC<HogarViewProps> = ({
 
       {/* Right panel: Activity dashboard & bento columns */}
       <section className="lg:col-span-9 space-y-6">
-        
+
         {/* Main Taller Termofusion Bento Card */}
         <article className="bg-white dark:bg-inverse-surface rounded-3xl border border-outline-variant card-shadow overflow-hidden group">
           <div className="relative h-64 w-full">
@@ -300,12 +315,24 @@ export const HogarView: React.FC<HogarViewProps> = ({
         </article>
 
         {/* Custom Planned Activities */}
-        {studentActivities.length > 0 && (
-          <div className="space-y-4 animate-fade-in text-left">
+        <div className="space-y-4 animate-fade-in text-left">
+          <div className="flex items-center justify-between">
             <h3 className="font-bold text-on-surface text-base flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary">calendar_today</span>
               Otras Planificaciones Personalizadas (Hogar)
             </h3>
+            {selectedStudentId && (
+              <button
+                onClick={() => onOpenPlanningModal(selectedStudentId)}
+                className="flex items-center gap-1 text-primary hover:bg-primary/10 text-xs px-3 py-1.5 rounded-xl font-bold border border-primary/20 transition-all shadow-xs cursor-pointer bg-primary/5"
+              >
+                <span className="material-symbols-outlined text-xs">add</span>
+                <span>Planificar Actividad</span>
+              </button>
+            )}
+          </div>
+
+          {studentActivities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {studentActivities.map(activity => (
                 <div
@@ -418,8 +445,22 @@ export const HogarView: React.FC<HogarViewProps> = ({
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="p-8 border border-dashed border-outline-variant rounded-2xl text-center bg-surface-container-lowest">
+              <span className="material-symbols-outlined text-outline text-3xl mb-2">calendar_today</span>
+              <p className="text-xs text-on-surface-variant italic mb-3">No hay otras planificaciones creadas para este alumno en Hogar.</p>
+              {selectedStudentId && (
+                <button
+                  onClick={() => onOpenPlanningModal(selectedStudentId)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-xs font-bold rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-95 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-xs">add</span>
+                  <span>Nueva Planificación</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Secondary Bento Items */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
