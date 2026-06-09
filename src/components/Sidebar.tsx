@@ -5,12 +5,16 @@ interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   openPlanningModal: () => void;
+  onDownloadSite: () => void;
+  isExporting: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   openPlanningModal,
+  onDownloadSite,
+  isExporting,
 }) => {
   return (
     <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full p-4 gap-4 bg-white dark:bg-inverse-surface shadow-[4px_0_15px_rgba(67,82,165,0.05)] w-64 z-40 pt-6">
@@ -120,6 +124,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </button>
 
       <div className="flex flex-col gap-1 border-t border-outline-variant pt-4">
+        <button
+          onClick={onDownloadSite}
+          disabled={isExporting}
+          className={`flex items-center gap-3 px-4 py-2 text-primary hover:bg-primary/5 rounded-xl transition-all text-left w-full cursor-pointer group ${
+            isExporting ? 'opacity-60 cursor-not-allowed' : ''
+          }`}
+        >
+          <span className={`material-symbols-outlined text-[20px] text-primary group-hover:scale-110 transition-transform ${isExporting ? 'animate-spin' : ''}`}>
+            {isExporting ? 'sync' : 'download_for_offline'}
+          </span>
+          <span className="font-label-md text-sm font-bold">
+            {isExporting ? 'Generando...' : 'Descargar HTML'}
+          </span>
+        </button>
         <button
           onClick={() => alert('Parámetros de configuración del sistema')}
           className="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-all text-left w-full"

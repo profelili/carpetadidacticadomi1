@@ -48,6 +48,46 @@ export default function App() {
   const [selectedHospitalStudentId, setSelectedHospitalStudentId] = useState<string>('');
   const [selectedHogarStudentId, setSelectedHogarStudentId] = useState<string>('');
   const [selectedResourceForPreview, setSelectedResourceForPreview] = useState<ResourceMaterial | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadSite = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch('/api/download-single-html', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          students,
+          activities: activities.map(act => ({
+            ...act,
+            // Keep full content intact
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        throw new Error(errorMsg || 'No se pudo generar el archivo.');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'carpeta_didactica.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Error downloading HTML:', err);
+      alert('Error al descargar el sitio: ' + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Synchronize first students when students change
   useEffect(() => {
@@ -219,6 +259,8 @@ export default function App() {
             setActiveTab={setActiveTab}
             openPlanningModal={() => handleOpenPlanningModal()}
             onDownloadResource={handleDownloadResource}
+            onDownloadSite={handleDownloadSite}
+            isExporting={isExporting}
           />
         );
       case 'domiciliarios':
@@ -274,6 +316,8 @@ export default function App() {
             setActiveTab={setActiveTab}
             openPlanningModal={() => handleOpenPlanningModal()}
             onDownloadResource={handleDownloadResource}
+            onDownloadSite={handleDownloadSite}
+            isExporting={isExporting}
           />
         );
     }
@@ -287,6 +331,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         openPlanningModal={() => handleOpenPlanningModal()}
+        onDownloadSite={handleDownloadSite}
+        isExporting={isExporting}
       />
 
       {/* Mobile Top Header */}

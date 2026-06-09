@@ -57,6 +57,8 @@ interface InicioViewProps {
   setActiveTab: (tab: string) => void;
   openPlanningModal: () => void;
   onDownloadResource: (res: ResourceMaterial) => void;
+  onDownloadSite: () => void;
+  isExporting: boolean;
 }
 
 export const InicioView: React.FC<InicioViewProps> = ({
@@ -65,6 +67,8 @@ export const InicioView: React.FC<InicioViewProps> = ({
   setActiveTab,
   openPlanningModal,
   onDownloadResource,
+  onDownloadSite,
+  isExporting,
 }) => {
   const [selectedDay, setSelectedDay] = useState<number>(16); // Martes 16 default
   const [searchQuery, setSearchQuery] = useState('');
@@ -255,6 +259,31 @@ export const InicioView: React.FC<InicioViewProps> = ({
             className="w-full h-full object-contain rounded-2xl drop-shadow-md transform hover:scale-105 transition-transform duration-300"
           />
         </div>
+      </section>
+
+      {/* Standalone HTML Deployment Callout */}
+      <section className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-indigo-950/20 dark:to-blue-950/20 border border-outline-variant rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 max-w-xl">
+          <h3 className="font-headline font-bold text-base text-primary flex items-center gap-2">
+            <span className="material-symbols-outlined text-xl">download_for_offline</span>
+            Exportar Carpeta Didáctica Completa (Sitio Autónomo)
+          </h3>
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            Descargá tu sitio completo en un <b>único archivo HTML autónomo</b> para guardarlo en tu computadora o subirlo directamente a tu GitHub Pages. Incluye todos tus alumnos actuales, planificaciones y clases registradas para abrir y usar sin conexión a internet en cualquier lugar.
+          </p>
+        </div>
+        <button
+          onClick={onDownloadSite}
+          disabled={isExporting}
+          className={`px-5 py-3 bg-primary text-on-primary font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all hover:shadow-lg hover:opacity-90 active:scale-[0.98] flex items-center gap-2.5 shrink-0 whitespace-nowrap ${
+            isExporting ? 'opacity-65 cursor-not-allowed' : ''
+          }`}
+        >
+          <span className={`material-symbols-outlined text-base ${isExporting ? 'animate-spin' : ''}`}>
+            {isExporting ? 'sync' : 'download'}
+          </span>
+          {isExporting ? 'Preparando archivo...' : 'Descargar Archivo HTML Único'}
+        </button>
       </section>
 
       {/* Interactive Weekly Planning Spreadsheet (Carpeta Didáctica Oficial) */}
