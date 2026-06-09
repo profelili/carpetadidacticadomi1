@@ -1,4 +1,5 @@
 import React from 'react';
+import avatarImg from '../assets/images/liliana_line_art_avatar_1780774966241.png';
 
 interface SidebarProps {
   activeTab: string;
@@ -35,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <img
           alt="Alvarez Liliana"
           className="w-10 h-10 rounded-full object-cover border border-outline-variant"
-          src="/src/assets/images/liliana_line_art_avatar_1780774966241.png"
+          src={avatarImg}
           referrerPolicy="no-referrer"
         />
         <div className="overflow-hidden">

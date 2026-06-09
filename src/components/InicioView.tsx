@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ResourceMaterial, Student } from '../types';
+import welcomeImg from '../assets/images/welcome_hero_steps_1780775091527.png';
 
 const renderTextWithLinks = (text: string) => {
   if (!text) return null;
@@ -248,7 +249,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
         {/* Dynamic decorative image */}
         <div className="relative w-48 h-48 md:w-64 md:h-64 flex-shrink-0 flex items-center justify-center">
           <img
-            src="/src/assets/images/welcome_hero_steps_1780775091527.png"
+            src={welcomeImg}
             alt="Ilustración Carpeta Didáctica"
             referrerPolicy="no-referrer"
             className="w-full h-full object-contain rounded-2xl drop-shadow-md transform hover:scale-105 transition-transform duration-300"

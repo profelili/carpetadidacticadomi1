@@ -12,6 +12,7 @@ import { INITIAL_STUDENTS, INITIAL_ACTIVITIES, DEFAULT_RESOURCES } from './data'
 import { Student, ActivityPlan, ResourceMaterial } from './types';
 import { saveActivitiesToDB, loadActivitiesFromDB } from './lib/db';
 import { ResourceViewerModal } from './components/ResourceViewerModal';
+import avatarImg from './assets/images/liliana_line_art_avatar_1780774966241.png';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('inicio');
@@ -301,7 +302,7 @@ export default function App() {
         <img
           alt="Alvarez Liliana"
           className="w-8 h-8 rounded-full border object-cover"
-          src="/src/assets/images/liliana_line_art_avatar_1780774966241.png"
+          src={avatarImg}
           referrerPolicy="no-referrer"
         />
       </header>

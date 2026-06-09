@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Student, ActivityPlan, AttachedFile } from '../types';
 import { parseGoogleDriveUrl } from '../lib/drive';
+import tallerImg from '../assets/images/regenerated_image_1780834857342.jpg';
 
 const renderTextWithLinks = (text: string) => {
   if (!text) return null;
@@ -245,7 +246,7 @@ export const HogarView: React.FC<HogarViewProps> = ({
             <img
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-102"
               alt="Taller de Termofusion en el Hogar Juanito"
-              src="/src/assets/images/regenerated_image_1780834857342.jpg"
+              src={tallerImg}
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent"></div>
