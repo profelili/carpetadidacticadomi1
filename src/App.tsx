@@ -19,6 +19,22 @@ export default function App() {
   
   const [students, setStudents] = useState<Student[]>(() => {
     try {
+      const embeddedDownloadId = typeof window !== 'undefined' && (window as any).OFFLINE_DOWNLOAD_ID;
+      const loadedDownloadId = typeof window !== 'undefined' ? localStorage.getItem('carp_loaded_download_id') : null;
+      const isNewDownload = embeddedDownloadId && (embeddedDownloadId !== loadedDownloadId);
+
+      if (isNewDownload) {
+        const embeddedStudents = (window as any).OFFLINE_STUDENTS;
+        if (embeddedStudents && Array.isArray(embeddedStudents)) {
+          try {
+            localStorage.setItem('carp_students', JSON.stringify(embeddedStudents));
+          } catch (storageErr) {
+            console.warn('Could not cache offline students immediately:', storageErr);
+          }
+          return embeddedStudents;
+        }
+      }
+
       const saved = localStorage.getItem('carp_students');
       return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
     } catch (e) {
@@ -29,6 +45,22 @@ export default function App() {
 
   const [activities, setActivities] = useState<ActivityPlan[]>(() => {
     try {
+      const embeddedDownloadId = typeof window !== 'undefined' && (window as any).OFFLINE_DOWNLOAD_ID;
+      const loadedDownloadId = typeof window !== 'undefined' ? localStorage.getItem('carp_loaded_download_id') : null;
+      const isNewDownload = embeddedDownloadId && (embeddedDownloadId !== loadedDownloadId);
+
+      if (isNewDownload) {
+        const embeddedActivities = (window as any).OFFLINE_ACTIVITIES;
+        if (embeddedActivities && Array.isArray(embeddedActivities)) {
+          try {
+            localStorage.setItem('carp_activities', JSON.stringify(embeddedActivities));
+          } catch (storageErr) {
+            console.warn('Could not cache offline activities immediately:', storageErr);
+          }
+          return embeddedActivities;
+        }
+      }
+
       const saved = localStorage.getItem('carp_activities');
       return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
     } catch (e) {
@@ -37,7 +69,46 @@ export default function App() {
     }
   });
 
-  const [resources, setResources] = useState<ResourceMaterial[]>(DEFAULT_RESOURCES);
+  const [customExternalResources, setCustomExternalResources] = useState<ResourceMaterial[]>(() => {
+    try {
+      const stored = localStorage.getItem('custom_external_resources');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleAddCustomExternalResource = (title: string, url: string, description: string = '', imageUrl: string = '') => {
+    if (!title || !url) return;
+    const cleanUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+    const newRes: ResourceMaterial = {
+      id: `custom-ext-${Date.now()}`,
+      titulo: title,
+      descripcion: description || 'Recurso externo personalizado.',
+      materia: 'Personalizado',
+      url: cleanUrl,
+      imageUrl: imageUrl || undefined
+    };
+    const updated = [...customExternalResources, newRes];
+    setCustomExternalResources(updated);
+    try {
+      localStorage.setItem('custom_external_resources', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteCustomExternalResource = (id: string) => {
+    const updated = customExternalResources.filter(r => r.id !== id);
+    setCustomExternalResources(updated);
+    try {
+      localStorage.setItem('custom_external_resources', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const resources = [...DEFAULT_RESOURCES, ...customExternalResources];
   const [isPlanningModalOpen, setIsPlanningModalOpen] = useState(false);
   const [activityToEdit, setActivityToEdit] = useState<ActivityPlan | undefined>(undefined);
   const [activityToDeleteId, setActivityToDeleteId] = useState<string | null>(null);
@@ -105,12 +176,45 @@ export default function App() {
   useEffect(() => {
     const initDB = async () => {
       try {
-        const dbActivities = await loadActivitiesFromDB();
-        if (dbActivities && dbActivities.length > 0) {
-          setActivities(dbActivities);
+        const embeddedDownloadId = typeof window !== 'undefined' && (window as any).OFFLINE_DOWNLOAD_ID;
+        const loadedDownloadId = typeof window !== 'undefined' ? localStorage.getItem('carp_loaded_download_id') : null;
+        const isNewDownload = embeddedDownloadId && (embeddedDownloadId !== loadedDownloadId);
+
+        if (isNewDownload) {
+          console.log('Sincronizando nuevas actividades y alumnos embebidos...');
+          const embeddedActivities = (window as any).OFFLINE_ACTIVITIES;
+          const embeddedStudents = (window as any).OFFLINE_STUDENTS;
+
+          if (embeddedActivities && Array.isArray(embeddedActivities)) {
+            await saveActivitiesToDB(embeddedActivities);
+            setActivities(embeddedActivities);
+            try {
+              localStorage.setItem('carp_activities', JSON.stringify(embeddedActivities));
+            } catch (err) {
+              console.warn('LocalStorage limit for activities caching:', err);
+            }
+          }
+          if (embeddedStudents && Array.isArray(embeddedStudents)) {
+            setStudents(embeddedStudents);
+            try {
+              localStorage.setItem('carp_students', JSON.stringify(embeddedStudents));
+            } catch (err) {
+              console.warn('LocalStorage error for students caching:', err);
+            }
+          }
+
+          if (embeddedDownloadId) {
+            localStorage.setItem('carp_loaded_download_id', embeddedDownloadId);
+          }
+        } else {
+          // Normal load: load from IndexedDB
+          const dbActivities = await loadActivitiesFromDB();
+          if (dbActivities && dbActivities.length > 0) {
+            setActivities(dbActivities);
+          }
         }
       } catch (err) {
-        console.error('Failed to load activities from IndexedDB, falling back to localStorage:', err);
+        console.error('Failed to restore or sync activities with IndexedDB:', err);
       } finally {
         setIsDBLoaded(true);
       }
@@ -221,6 +325,17 @@ export default function App() {
     }
   };
 
+  const handleRestoreHogarActivities = () => {
+    const defaultHogarIds = ['act-5', 'act-6'];
+    const missingDefaultHogarActivities = INITIAL_ACTIVITIES.filter(
+      initAct => defaultHogarIds.includes(initAct.id) && !activities.some(act => act.id === initAct.id)
+    );
+
+    if (missingDefaultHogarActivities.length > 0) {
+      setActivities(prev => [...prev, ...missingDefaultHogarActivities]);
+    }
+  };
+
   const handleAddStudent = (newStudent: Omit<Student, 'id' | 'avatarInitials'>) => {
     const sId = 'student-' + (students.length + 1) + '-' + Date.now();
     const initials = (newStudent.nombre[0] || 'A') + (newStudent.apellido[0] || 'B');
@@ -273,6 +388,7 @@ export default function App() {
             onDeleteActivity={handleDeleteActivity}
             selectedStudentId={selectedDomicilioStudentId}
             onSelectStudent={setSelectedDomicilioStudentId}
+            onPreviewResource={handleDownloadResource}
           />
         );
       case 'hospitalarios':
@@ -285,6 +401,7 @@ export default function App() {
             onDeleteActivity={handleDeleteActivity}
             selectedStudentId={selectedHospitalStudentId}
             onSelectStudent={setSelectedHospitalStudentId}
+            onPreviewResource={handleDownloadResource}
           />
         );
       case 'hogar':
@@ -297,6 +414,8 @@ export default function App() {
             onDeleteActivity={handleDeleteActivity}
             selectedStudentId={selectedHogarStudentId}
             onSelectStudent={setSelectedHogarStudentId}
+            onRestoreHogarActivities={handleRestoreHogarActivities}
+            onPreviewResource={handleDownloadResource}
           />
         );
       case 'panel':
@@ -378,6 +497,10 @@ export default function App() {
           activityToEdit={activityToEdit}
           onUpdateActivity={handleUpdateActivity}
           defaultStudentId={preselectedStudentId}
+          onPreviewResource={(res) => setSelectedResourceForPreview(res)}
+          customExternalResources={customExternalResources}
+          onAddCustomExternalResource={handleAddCustomExternalResource}
+          onDeleteCustomExternalResource={handleDeleteCustomExternalResource}
         />
       )}
 

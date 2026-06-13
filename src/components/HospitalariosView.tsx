@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Student, ActivityPlan, AttachedFile } from '../types';
+import { Student, ActivityPlan, AttachedFile, ResourceMaterial } from '../types';
+import { DEFAULT_RESOURCES } from '../data';
 import { parseGoogleDriveUrl } from '../lib/drive';
 
 const renderTextWithLinks = (text: string) => {
   if (!text) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+|(?:gemini|drive)\.google\.com\/[^\s()<>]+)/gi;
   const parts = text.split(urlRegex);
   return parts.map((part, i) => {
     if (part.match(urlRegex)) {
+      let href = part;
+      if (!/^https?:\/\//i.test(href)) {
+        href = 'https://' + href;
+      }
       return (
         <a
           key={i}
-          href={part}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary hover:underline font-bold inline-flex items-center gap-0.5 break-all"
+          className="text-primary hover:underline font-bold inline-flex items-center gap-0.5 break-all cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
         >
           <span className="material-symbols-outlined text-[11px] inline-block">open_in_new</span>
           {part}
@@ -99,6 +105,7 @@ interface HospitalariosViewProps {
   onDeleteActivity?: (id: string) => void;
   selectedStudentId?: string;
   onSelectStudent?: (id: string) => void;
+  onPreviewResource?: (res: ResourceMaterial) => void;
 }
 
 export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
@@ -109,6 +116,7 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
   onDeleteActivity,
   selectedStudentId: selectedStudentIdProp,
   onSelectStudent,
+  onPreviewResource,
 }) => {
   const hospitalarios = students.filter(s => s.contexto === 'Hospital');
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
@@ -219,7 +227,16 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
             </div>
 
             {/* Bento Grid layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {studentActivities.length === 0 ? (
+              <div className="bg-white dark:bg-inverse-surface border border-dashed border-outline-variant rounded-2xl p-8 text-center space-y-3 flex flex-col items-center justify-center col-span-2">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">assignment_late</span>
+                <p className="text-sm font-bold text-on-surface">No hay planificaciones para esta semana</p>
+                <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
+                  Este alumno no tiene actividades registradas aún. Utiliza el botón <strong>"Planificar Actividad"</strong> para registrar proyectos semanales y recursos adaptados.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Mathematics Card */}
               {studentActivities.some(a => a.materia === 'Matemática') ? (
@@ -615,7 +632,9 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
                               <span className="p-2 bg-primary-container/10 text-primary rounded-lg">
-                                <span className="material-symbols-outlined text-lg">school</span>
+                                <span className="material-symbols-outlined text-lg">
+                                  {act.materia === 'Escuelas Verdes' ? 'forest' : 'school'}
+                                </span>
                               </span>
                               <h4 className="font-bold text-on-surface text-base">{act.materia}</h4>
                             </div>
@@ -703,10 +722,127 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
                           })()}
 
                           {act.recursoClave && (
-                            <div className="flex flex-wrap gap-2 mt-4 font-mono text-[10px] text-primary bg-primary/5 px-2 py-1 rounded-lg w-max">
-                              Recurso clave: {act.recursoClave}
+                            <div className="flex flex-wrap gap-2 mt-4 font-mono text-[10px] text-primary bg-primary/5 px-2 py-1.5 rounded-lg w-max items-center max-w-full">
+                              <span>Recurso clave:</span>
+                              {(() => {
+                                const recurso = act.recursoClave;
+                                if (!recurso) return null;
+                                const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+|(?:gemini|drive)\.google\.com\/[^\s()<>]+)/gi;
+                                const parts = recurso.split(urlRegex);
+                                const matches = recurso.match(urlRegex);
+                                if (matches) {
+                                  return (
+                                    <span className="flex flex-wrap items-center gap-1">
+                                      {parts.map((part, index) => {
+                                        if (part.match(urlRegex)) {
+                                          let href = part;
+                                          if (!/^https?:\/\//i.test(href)) {
+                                            href = 'https://' + href;
+                                          }
+                                          return (
+                                            <a
+                                              key={index}
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center gap-0.5 text-primary hover:underline font-bold bg-primary/10 hover:bg-primary/20 px-1.5 py-0.5 rounded transition-all cursor-pointer"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                              <span className="max-w-[120px] truncate">{part}</span>
+                                            </a>
+                                          );
+                                        }
+                                        return <span key={index}>{part}</span>;
+                                      })}
+                                    </span>
+                                  );
+                                }
+                                return <span>{recurso}</span>;
+                              })()}
                             </div>
                           )}
+
+                          {(() => {
+                            const txtValue = (act.recursoClave || '').trim();
+                            if (!txtValue) return null;
+
+                            // Load custom external resources dynamically
+                            let customList: ResourceMaterial[] = [];
+                            try {
+                              const stored = localStorage.getItem('custom_external_resources');
+                              if (stored) customList = JSON.parse(stored);
+                            } catch (e) {
+                              console.error(e);
+                            }
+
+                            const allResources = [...DEFAULT_RESOURCES, ...customList];
+                            const matched = allResources.find(r => 
+                              r.titulo.toLowerCase() === txtValue.toLowerCase() ||
+                              txtValue.toLowerCase().includes(r.titulo.toLowerCase()) ||
+                              r.titulo.toLowerCase().includes(txtValue.toLowerCase())
+                            );
+
+                            if (matched) {
+                              if (matched.url) {
+                                return (
+                                  <a
+                                    href={matched.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-3 w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span className="material-symbols-outlined text-base">language</span>
+                                    <span>🌐 Abrir Recurso Externo: {matched.titulo}</span>
+                                  </a>
+                                );
+                              } else if (onPreviewResource) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => onPreviewResource(matched)}
+                                    className="mt-3 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                                  >
+                                    <span className="material-symbols-outlined text-base">smart_toy</span>
+                                    <span>🎮 Jugar con Recurso Adaptado: {matched.titulo}</span>
+                                  </button>
+                                );
+                              }
+                            }
+
+                            // Fallback matching logic for original identifiers to be thoroughly safe
+                            let detectedId: string | null = null;
+                            const txt = txtValue.toLowerCase();
+                            if (txt.includes('pitagórica') || txt.includes('pitagorica') || txt.includes('tabla pit')) {
+                              detectedId = 'res-1';
+                            } else if (txt.includes('waldorf') || txt.includes('circulo') || txt.includes('círculo')) {
+                              detectedId = 'res-2';
+                            } else if (txt.includes('efemérides') || txt.includes('1810') || txt.includes('revolución') || txt.includes('revolucion')) {
+                              detectedId = 'res-3';
+                            } else if (txt.includes('termofusión') || txt.includes('termofusion') || txt.includes('seguridad de termo') || txt.includes('manual de seguridad')) {
+                              detectedId = 'res-4';
+                            } else if (txt.includes('mundial') || txt.includes('digital 2026') || txt.includes('mundial 2026')) {
+                              detectedId = 'res-5';
+                            }
+
+                            if (detectedId && onPreviewResource) {
+                              const mappedResource = DEFAULT_RESOURCES.find(r => r.id === detectedId);
+                              if (mappedResource) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => onPreviewResource(mappedResource)}
+                                    className="mt-3 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                                  >
+                                    <span className="material-symbols-outlined text-base">smart_toy</span>
+                                    <span>🎮 Jugar con Recurso Adaptado: {mappedResource.titulo}</span>
+                                  </button>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
 
                           <div className="flex flex-wrap gap-2 mt-4">
                             {act.tags.map(tag => (
@@ -722,6 +858,7 @@ export const HospitalariosView: React.FC<HospitalariosViewProps> = ({
                 </div>
               )}
             </div>
+            )}
 
             {/* Stats Summary Panel */}
             <div className="p-4 rounded-xl bg-surface-container-low flex flex-col md:flex-row items-center justify-around gap-6 text-center border border-outline-variant/40">

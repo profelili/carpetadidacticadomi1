@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Student, ActivityPlan, VisitaRegistro, AttachedFile } from '../types';
+import { Student, ActivityPlan, VisitaRegistro, AttachedFile, ResourceMaterial } from '../types';
+import { DEFAULT_RESOURCES } from '../data';
 import { parseGoogleDriveUrl } from '../lib/drive';
 
 const renderTextWithLinks = (text: string) => {
   if (!text) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+|(?:gemini|drive)\.google\.com\/[^\s()<>]+)/gi;
   const parts = text.split(urlRegex);
   return parts.map((part, i) => {
     if (part.match(urlRegex)) {
+      let href = part;
+      if (!/^https?:\/\//i.test(href)) {
+        href = 'https://' + href;
+      }
       return (
         <a
           key={i}
-          href={part}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary hover:underline font-bold inline-flex items-center gap-0.5 break-all"
+          className="text-primary hover:underline font-bold inline-flex items-center gap-0.5 break-all cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
         >
           <span className="material-symbols-outlined text-[11px] inline-block">open_in_new</span>
           {part}
@@ -99,6 +105,7 @@ interface DomiciliariosViewProps {
   onDeleteActivity?: (id: string) => void;
   selectedStudentId?: string;
   onSelectStudent?: (id: string) => void;
+  onPreviewResource?: (res: ResourceMaterial) => void;
 }
 
 export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
@@ -109,6 +116,7 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
   onDeleteActivity,
   selectedStudentId: selectedStudentIdProp,
   onSelectStudent,
+  onPreviewResource,
 }) => {
   const domiciliarios = students.filter(s => s.contexto === 'Domicilio');
   const [selectedStudentId, setSelectedDayStudentId] = useState<string>(
@@ -298,122 +306,250 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
             </div>
 
             {/* Activities grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {studentActivities.map(activity => (
-                <div
-                  key={activity.id}
-                  className="bg-white dark:bg-inverse-surface border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col justify-between animate-fade-in text-left"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-4 text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="p-2 bg-surface-container-high rounded-xl text-primary">
-                          <span className="material-symbols-outlined text-lg">
-                            {activity.materia === 'Matemática' || activity.materia === 'Matemática Básica'
-                              ? 'calculate'
-                              : 'menu_book'}
+            {studentActivities.length === 0 ? (
+              <div className="bg-white dark:bg-inverse-surface border border-dashed border-outline-variant rounded-2xl p-8 text-center space-y-3 flex flex-col items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">assignment_late</span>
+                <p className="text-sm font-bold text-on-surface">No hay planificaciones para esta semana</p>
+                <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
+                  Este alumno no tiene actividades registradas aún. Utiliza el botón <strong>"Nueva Planificación"</strong> arriba para registrar actividades adaptadas y recursos semanales.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {studentActivities.map(activity => (
+                  <div
+                    key={activity.id}
+                    className="bg-white dark:bg-inverse-surface border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col justify-between animate-fade-in text-left"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-4 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="p-2 bg-surface-container-high rounded-xl text-primary">
+                            <span className="material-symbols-outlined text-lg">
+                              {activity.materia === 'Matemática' || activity.materia === 'Matemática Básica'
+                                ? 'calculate'
+                                : activity.materia === 'Escuelas Verdes'
+                                ? 'forest'
+                                : 'menu_book'}
+                            </span>
                           </span>
-                        </span>
-                        <h4 className="font-bold text-on-surface text-base">{activity.materia}</h4>
+                          <h4 className="font-bold text-on-surface text-base">{activity.materia}</h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold bg-primary-container/20 text-on-primary-fixed-variant px-3 py-1 rounded-full">
+                            {activity.estado}
+                          </span>
+                          {onEditActivity && (
+                            <button
+                              onClick={() => onEditActivity(activity)}
+                              className="w-7 h-7 flex items-center justify-center text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer border border-primary/20 bg-primary/5 shrink-0"
+                              title="Modificar planificación"
+                            >
+                              <span className="material-symbols-outlined text-base">edit</span>
+                            </button>
+                          )}
+                          {onDeleteActivity && (
+                            <button
+                              onClick={() => onDeleteActivity(activity.id)}
+                              className="w-7 h-7 flex items-center justify-center text-error hover:bg-error/15 rounded-full transition-colors cursor-pointer border border-error/20 bg-error/5 shrink-0"
+                              title="Eliminar planificación"
+                            >
+                              <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold bg-primary-container/20 text-on-primary-fixed-variant px-3 py-1 rounded-full">
-                          {activity.estado}
-                        </span>
-                        {onEditActivity && (
-                          <button
-                            onClick={() => onEditActivity(activity)}
-                            className="w-7 h-7 flex items-center justify-center text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer border border-primary/20 bg-primary/5 shrink-0"
-                            title="Modificar planificación"
-                          >
-                            <span className="material-symbols-outlined text-base">edit</span>
-                          </button>
-                        )}
-                        {onDeleteActivity && (
-                          <button
-                            onClick={() => onDeleteActivity(activity.id)}
-                            className="w-7 h-7 flex items-center justify-center text-error hover:bg-error/15 rounded-full transition-colors cursor-pointer border border-error/20 bg-error/5 shrink-0"
-                            title="Eliminar planificación"
-                          >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                          </button>
-                        )}
+                      <p className="font-bold text-on-surface text-sm mb-1">{activity.tema}</p>
+                      <div className="text-xs text-on-surface-variant leading-relaxed mb-4 whitespace-pre-wrap">
+                        {renderTextWithLinks(activity.descripcion)}
                       </div>
-                    </div>
-                    <p className="font-bold text-on-surface text-sm mb-1">{activity.tema}</p>
-                    <div className="text-xs text-on-surface-variant leading-relaxed mb-4 whitespace-pre-wrap">
-                      {renderTextWithLinks(activity.descripcion)}
-                    </div>
 
-                    {renderAttachedFiles(activity.attachedFiles)}
+                      {renderAttachedFiles(activity.attachedFiles)}
 
-                    {activity.enlaceUrl && (() => {
-                      const driveInfo = parseGoogleDriveUrl(activity.enlaceUrl);
-                      if (driveInfo) {
+                      {activity.enlaceUrl && (() => {
+                        const driveInfo = parseGoogleDriveUrl(activity.enlaceUrl);
+                        if (driveInfo) {
+                          return (
+                            <div className="mb-4 space-y-2">
+                              <a
+                                href={activity.enlaceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-emerald-555/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-3 py-1.5 rounded-xl transition-all border border-emerald-500/20 shadow-xs cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-sm">{driveInfo.icon}</span>
+                                <span>{activity.enlaceTitulo || driveInfo.typeName}</span>
+                              </a>
+                              {driveInfo.previewUrl && (
+                                <div className="relative group overflow-hidden rounded-xl border border-outline-variant/30 max-h-48 bg-neutral-100 flex justify-center">
+                                  <img
+                                    src={driveInfo.previewUrl}
+                                    alt="Vista previa de Google Drive"
+                                    className="max-h-48 object-contain hover:scale-102 transition-transform duration-300"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                  <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 text-white text-[9px] uppercase font-semibold px-2 py-0.5 rounded-md backdrop-blur-xs">
+                                    <span className="material-symbols-outlined text-xs text-emerald-400">add_to_drive</span>
+                                    <span>Google Drive</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
                         return (
-                          <div className="mb-4 space-y-2">
+                          <div className="mb-4">
                             <a
                               href={activity.enlaceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 bg-emerald-550/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-3 py-1.5 rounded-xl transition-all border border-emerald-500/20 shadow-xs cursor-pointer"
+                              className="inline-flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold px-3 py-1.5 rounded-xl transition-all border border-primary/20 shadow-sm cursor-pointer"
                             >
-                              <span className="material-symbols-outlined text-sm">{driveInfo.icon}</span>
-                              <span>{activity.enlaceTitulo || driveInfo.typeName}</span>
+                              <span className="material-symbols-outlined text-sm">link</span>
+                              <span>{activity.enlaceTitulo || 'Ver Enlace Adjunto'}</span>
                             </a>
-                            {driveInfo.previewUrl && (
-                              <div className="relative group overflow-hidden rounded-xl border border-outline-variant/30 max-h-48 bg-neutral-100 flex justify-center">
-                                <img
-                                  src={driveInfo.previewUrl}
-                                  alt="Vista previa de Google Drive"
-                                  className="max-h-48 object-contain hover:scale-102 transition-transform duration-300"
-                                  referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                                <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 text-white text-[9px] uppercase font-semibold px-2 py-0.5 rounded-md backdrop-blur-xs">
-                                  <span className="material-symbols-outlined text-xs text-emerald-400">add_to_drive</span>
-                                  <span>Google Drive</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         );
-                      }
+                      })()}
 
-                      return (
-                        <div className="mb-4">
-                          <a
-                            href={activity.enlaceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold px-3 py-1.5 rounded-xl transition-all border border-primary/20 shadow-sm cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-sm">link</span>
-                            <span>{activity.enlaceTitulo || 'Ver Enlace Adjunto'}</span>
-                          </a>
-                        </div>
-                      );
-                    })()}
-                  </div>
+                      {(() => {
+                        const txtValue = (activity.recursoClave || '').trim();
+                        if (!txtValue) return null;
 
-                  <div className="pt-4 border-t border-outline-variant/30 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-primary flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">extension</span>
-                      {activity.recursoClave || 'Sin recursos'}
-                    </span>
-                    <div className="flex gap-2">
-                      {activity.tags.map(tag => (
-                        <span key={tag} className="bg-surface-container text-on-surface-variant text-[10px] px-2 py-0.5 rounded-full font-medium">
-                          #{tag}
-                        </span>
-                      ))}
+                        // Load custom external resources dynamically
+                        let customList: ResourceMaterial[] = [];
+                        try {
+                          const stored = localStorage.getItem('custom_external_resources');
+                          if (stored) customList = JSON.parse(stored);
+                        } catch (e) {
+                          console.error(e);
+                        }
+
+                        const allResources = [...DEFAULT_RESOURCES, ...customList];
+                        const matched = allResources.find(r => 
+                          r.titulo.toLowerCase() === txtValue.toLowerCase() ||
+                          txtValue.toLowerCase().includes(r.titulo.toLowerCase()) ||
+                          r.titulo.toLowerCase().includes(txtValue.toLowerCase())
+                        );
+
+                        if (matched) {
+                          if (matched.url) {
+                            return (
+                              <a
+                                href={matched.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mb-4 w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="material-symbols-outlined text-base">language</span>
+                                <span>🌐 Abrir Recurso Externo: {matched.titulo}</span>
+                              </a>
+                            );
+                          } else if (onPreviewResource) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => onPreviewResource(matched)}
+                                className="mb-4 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                              >
+                                <span className="material-symbols-outlined text-base">smart_toy</span>
+                                <span>🎮 Jugar con Recurso Adaptado: {matched.titulo}</span>
+                              </button>
+                            );
+                          }
+                        }
+
+                        // Fallback matching logic for original identifiers to be thoroughly safe
+                        let detectedId: string | null = null;
+                        const txt = txtValue.toLowerCase();
+                        if (txt.includes('pitagórica') || txt.includes('pitagorica') || txt.includes('tabla pit')) {
+                          detectedId = 'res-1';
+                        } else if (txt.includes('waldorf') || txt.includes('circulo') || txt.includes('círculo')) {
+                          detectedId = 'res-2';
+                        } else if (txt.includes('efemérides') || txt.includes('1810') || txt.includes('revolución') || txt.includes('revolucion')) {
+                          detectedId = 'res-3';
+                        } else if (txt.includes('termofusión') || txt.includes('termofusion') || txt.includes('seguridad de termo') || txt.includes('manual de seguridad')) {
+                          detectedId = 'res-4';
+                        } else if (txt.includes('mundial') || txt.includes('digital 2026') || txt.includes('mundial 2026')) {
+                          detectedId = 'res-5';
+                        }
+
+                        if (detectedId && onPreviewResource) {
+                          const mappedResource = DEFAULT_RESOURCES.find(r => r.id === detectedId);
+                          if (mappedResource) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => onPreviewResource(mappedResource)}
+                                className="mb-4 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                              >
+                                <span className="material-symbols-outlined text-base">smart_toy</span>
+                                <span>🎮 Jugar con Recurso Adaptado: {mappedResource.titulo}</span>
+                              </button>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+                    </div>
+
+                    <div className="pt-4 border-t border-outline-variant/30 flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-primary flex items-center gap-1 flex-wrap">
+                        <span className="material-symbols-outlined text-[14px]">extension</span>
+                        {(() => {
+                          const recurso = activity.recursoClave;
+                          if (!recurso) return 'Sin recursos';
+                          const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+|(?:gemini|drive)\.google\.com\/[^\s()<>]+)/gi;
+                          const parts = recurso.split(urlRegex);
+                          const matches = recurso.match(urlRegex);
+                          if (matches) {
+                            return (
+                              <span className="flex flex-wrap items-center gap-1">
+                                {parts.map((part, index) => {
+                                  if (part.match(urlRegex)) {
+                                    let href = part;
+                                    if (!/^https?:\/\//i.test(href)) {
+                                      href = 'https://' + href;
+                                    }
+                                    return (
+                                      <a
+                                        key={index}
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-primary hover:underline font-bold bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-lg transition-all cursor-pointer"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <span className="material-symbols-outlined text-[11px]">open_in_new</span>
+                                        <span className="max-w-[160px] truncate">{part}</span>
+                                      </a>
+                                    );
+                                  }
+                                  return <span key={index}>{part}</span>;
+                                })}
+                              </span>
+                            );
+                          }
+                          return recurso;
+                        })()}
+                      </span>
+                      <div className="flex gap-2">
+                        {activity.tags.map(tag => (
+                          <span key={tag} className="bg-surface-container text-on-surface-variant text-[10px] px-2 py-0.5 rounded-full font-medium">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Observations Card */}
             {selectedStudent.observaciones && (

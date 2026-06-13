@@ -1,4 +1,14 @@
 import { Student, ActivityPlan, ResourceMaterial } from './types';
+import basuraOTesoroImg from './assets/images/basura_o_tesoro_1781258672877.jpg';
+import tablaPitagoricaImg from './assets/images/tabla_pitagorica_1781258933292.jpg';
+import circuloWaldorfImg from './assets/images/circulo_waldorf_manual_es_1781361901155.jpg';
+import revolucion1810Img from './assets/images/revolucion_1810_1781258958316.jpg';
+import termofusionSeguridadImg from './assets/images/termofusion_seguridad_1781258970287.jpg';
+import mundialDigital2026Img from './assets/images/mundial_digital_banner_1781259552039.jpg';
+import seresVivosImg from './assets/images/seres_vivos_es_1781360530774.jpg';
+import cuentosVerdesImg from './assets/images/cuentos_verdes_final_1781353069075.jpg';
+import granConcursoCovImg from './assets/images/gran_concurso_cov_1781354648245.jpg';
+import sofiaCircleImg from './assets/images/sofia_circle_online_game_1781362409738.jpg';
 
 export const INITIAL_STUDENTS: Student[] = [
   // Domiciliarios (Domi1 and Domi2)
@@ -245,24 +255,76 @@ export const DEFAULT_RESOURCES: ResourceMaterial[] = [
     id: 'res-1',
     titulo: 'Tabla Pitagórica Dinámica',
     descripcion: 'Tabla de doble entrada conceptual adaptada con códigos de colores cálidos para facilitar el aprendizaje de las tablas.',
-    materia: 'Matemática'
+    materia: 'Matemática',
+    imageUrl: tablaPitagoricaImg
   },
   {
     id: 'res-2',
     titulo: 'Círculo de Multiplicación Waldorf',
     descripcion: 'Plantilla redonda de madera con pines numerados del 0 al 9 para entrelazar lanas de colores formando espirales geométricas.',
-    materia: 'Matemática'
+    materia: 'Matemática',
+    imageUrl: circuloWaldorfImg
   },
   {
     id: 'res-3',
     titulo: 'Efemérides: Set de la Revolución de 1810',
     descripcion: 'Colección de escenas históricas vectoriales desglosadas en rompecabezas imprimibles y crucigramas adaptados.',
-    materia: 'C. Sociales'
+    materia: 'C. Sociales',
+    imageUrl: revolucion1810Img
   },
   {
     id: 'res-4',
     titulo: 'Manual de Seguridad de Termofusión',
     descripcion: 'Póster infográfico explicativo portátil para guiar la identificación de materiales seguros (PEAD/PEBD) y evitar el PVC en la prensa.',
-    materia: 'Seguridad'
+    materia: 'Escuelas Verdes',
+    imageUrl: termofusionSeguridadImg
+  },
+  {
+    id: 'res-5',
+    titulo: 'Mundial Digital 2026',
+    descripcion: 'Un recorrido por las culturas digitales de los países participantes.\n¡EMPECEMOS A JUGAR!\nExplorá la cultura digital de los países del Mundial 2026\nDescubrí cómo viven, juegan y usan tecnología en las distintas partes del mundo',
+    materia: 'Planificación',
+    url: 'https://mundialdigital2026.bue.edu.ar/#grupos-grid',
+    imageUrl: mundialDigital2026Img
+  },
+  {
+    id: 'res-6',
+    titulo: 'Clasificación y Registro de los Seres Vivos 🌿✨',
+    descripcion: 'Uso aplicación interactiva de Ciencias Naturales para enseñar la clasificación de los seres vivos según su hábitat (terrestre, acuático y aéreo)',
+    materia: 'Cs. Naturales',
+    url: 'https://gemini.google.com/share/a596bdc1aae1?hl=es_419',
+    imageUrl: seresVivosImg
+  },
+  {
+    id: 'res-7',
+    titulo: 'Concurso Basura o Tesoro',
+    descripcion: '10 🏆 ¡Bienvenidos al Concurso! 🔊 ¡Hola, Eco-Héroes! En este juego aprenderemos que muchas cosas que llamamos "basura" en realidad son tesoros que podemos salvar. ¿Están listos para poner a prueba sus superpoderes ecológicos?',
+    materia: 'Escuelas Verdes',
+    url: 'https://gemini.google.com/share/7851c517d2e3?hl=es_419',
+    imageUrl: basuraOTesoroImg
+  },
+  {
+    id: 'res-8',
+    titulo: 'Cuentos Verdes',
+    descripcion: 'Una maravillosa antología de cuentos y relatos animados para trabajar con dinámicas de educación ambiental y concienciación verde en el aula.',
+    materia: 'Escuelas Verdes',
+    url: 'https://gemini.google.com/share/0e64ad501152',
+    imageUrl: cuentosVerdesImg
+  },
+  {
+    id: 'res-9',
+    titulo: 'El gran concurso: ¿Basura o Tesoro?',
+    descripcion: 'Una historia inspirada en el juego "Concurso Basura o Tesoro" con los personajes: Seño. Lily, Gio y Mario en una divertida aventura escolar donde aprenden a clasificar residuos y proteger el planeta.',
+    materia: 'Escuelas Verdes',
+    url: 'https://gemini.google.com/share/8e5a21bb872c',
+    imageUrl: granConcursoCovImg
+  },
+  {
+    id: 'res-10',
+    titulo: 'App Sofía Circle',
+    descripcion: 'Pizarra interactiva del círculo multiplicador Waldorf online. Selecciona una tabla (del 0 al 9), elige el color de hilo y pinta la figura generada para experimentar la hermosa simetría geométrica de las matemáticas.',
+    materia: 'Matemática',
+    url: 'https://sofia.school',
+    imageUrl: sofiaCircleImg
   }
 ];

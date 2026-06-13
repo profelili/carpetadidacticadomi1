@@ -207,8 +207,77 @@ export const ResourceViewerModal: React.FC<ResourceViewerModalProps> = ({
 
   const isSafetyPass = Object.values(fusePracticeStatus).every(Boolean);
 
+  // ----- RESOURCE 5: MUNDIAL DIGITAL 2026 -----
+  const [mundialTab, setMundialTab] = useState<'home' | 'explora' | 'juga' | 'investiga'>('home');
+  const [selectedCountry, setSelectedCountry] = useState<string>('Argentina');
+  const [triviaIndex, setTriviaIndex] = useState<number>(0);
+  const [triviaScore, setTriviaScore] = useState<number>(0);
+  const [triviaSelectedAnswer, setTriviaSelectedAnswer] = useState<number | null>(null);
+  const [triviaChecking, setTriviaChecking] = useState<boolean>(false);
+  const [triviaCompleted, setTriviaCompleted] = useState<boolean>(false);
+  const [userMundialNotes, setUserMundialNotes] = useState<string>('');
+
+  const p_digitales: Record<string, {
+    flag: string;
+    culture: string;
+    fact: string;
+    color: string;
+  }> = {
+    Argentina: {
+      flag: '🇦🇷',
+      culture: 'Fuerte desarrollo de proyectos de robótica escolar lúdica y videojuegos educativos independientes. Las escuelas estatales usan herramientas de programación visual vinculadas con el cuidado ambiental y la revalorización de residuos (Escuelas Verdes).',
+      fact: '¡Los docentes de educación tecnológica articulan talleres donde programan circuitos didácticos para medir la humedad de plantas recicladas!',
+      color: 'from-sky-100 to-sky-200 dark:from-sky-950/20 dark:to-sky-900/10 border-sky-200 dark:border-sky-800'
+    },
+    'Japón': {
+      flag: '🇯🇵',
+      culture: 'Enfoque temprano en la robótica asistencial escolar y la inteligencia artificial para automatizar flujos diarios. Fuerte adopción del pensamiento de diseño tecnológico para gamificar el cuidado del aula y el juego cooperativo.',
+      fact: 'Los alumnos programan pequeños mini-robots recolectores autónomos para clasificar de manera interactiva insumos de papelería al finalizar la clase.',
+      color: 'from-red-50 to-red-100 dark:from-red-950/10 dark:to-red-900/10 border-red-200 dark:border-red-900/30'
+    },
+    'Nigeria': {
+      flag: '🇳🇬',
+      culture: 'Foco en la movilidad digital y el desarrollo ágil (mobile learning). A través de microcontroladores de bajo consumo e interfaces móviles simplificadas, los estudiantes crean herramientas de soporte directo para su comunidad agraria y sistemas de alertas escolares.',
+      fact: 'Uso generalizado de microcursos offline integrados por mensajería SMS automatizada para educar de forma robusta e inteligente.',
+      color: 'from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/10 border-emerald-200 dark:border-emerald-800'
+    },
+    'Brasil': {
+      flag: '🇧🇷',
+      culture: 'Cultura "hacerlo tú mismo" (Cultura Maker) y uso masivo de software de diseño libre y laboratorios FabLabs escolares. Integración de música interactiva, micro-sensores y arte digital expresivo para plasmar la biodiversidad local.',
+      fact: '¡Crean orquestas musicales interactivas conectando bananas, hojas de plantas y agua a placas controladoras programadas con computadoras!',
+      color: 'from-yellow-100/40 to-green-100/45 dark:from-yellow-950/10 dark:to-green-950/10 border-yellow-200/50 dark:border-green-800/30'
+    },
+    'Alemania': {
+      flag: '🇩🇪',
+      culture: 'Sistemas rigurosos orientados al aprendizaje del Internet de las Cosas (IoT), automatización solar fotovoltaica escolar y protección de la privacidad cibernética (Criptografía educativa elemental desde edad escolar).',
+      fact: 'Simulan maquetas a escala de casas domóticas eco-eficientes regulando el gasto eléctrico de ventiladores basándose en la temperatura ambiente real.',
+      color: 'from-amber-100/30 to-rose-100/40 dark:from-amber-950/10 dark:to-rose-950/10 border-neutral-200 dark:border-neutral-800'
+    }
+  };
+
+  const triviaQuestions = [
+    {
+      q: '¿Qué tecnología de bajo coste usan en Brasil para armar pianos frutales y música interactiva mediante computadoras en ferias de tecnología escolar?',
+      opts: ['Tornillos tradicionales con cables de alimentación pesados', 'Placas electrónicas controladoras de contacto táctil (Maker plates)', 'Maquinaria de soldador industrial con gas'],
+      correct: 1,
+      why: 'Las placas controladoras USB permiten transformar cualquier elemento conductor (frutas, plantas, masilla escolar) en teclas interactivas seguras.'
+    },
+    {
+      q: 'En las escuelas técnicas de Alemania, ¿en qué concepto enfocado en el ahorro energético lúdico suelen focalizarse los kits escolares?',
+      opts: ['Casas y maquetas eco-eficientes automatizadas para regular recursos (Internet de las Cosas)', 'Uso de carbón fósil para el calentamiento directo de prensas escolares', 'Pantallas de televisores gigantes sin control de encendido'],
+      correct: 0,
+      why: 'Los maquetados de casas conectadas por sensores solares educan a los alumnos en modelado tecnológico para la sostenibilidad.'
+    },
+    {
+      q: '¿Cuál es una característica distintiva del mobile-learning masivo de bajo consumo implementado en Nigeria?',
+      opts: ['Auriculares de realidad virtual exclusivos para cada hogar sin internet', 'Uso inteligente de plataformas offline y microcursos interactivos por mensaje SMS', 'Obligar a usar consolas de alta fidelidad que demandan cables de fibra óptica permanentes'],
+      correct: 1,
+      why: 'El SMS y las web-apps ligeras permiten mantener la conectividad pedagógica y superar de manera creativa la brecha de infraestructura.'
+    }
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md" onClick={onClose}></div>
 
@@ -222,7 +291,9 @@ export const ResourceViewerModal: React.FC<ResourceViewerModalProps> = ({
               <span className="material-symbols-outlined text-[24px]">
                 {resource.id === 'res-1' ? 'calculate' : 
                  resource.id === 'res-2' ? 'motion_photos_on' : 
-                 resource.id === 'res-3' ? 'library_books' : 'shield_with_heart'}
+                 resource.id === 'res-3' ? 'library_books' : 
+                 resource.id === 'res-4' ? 'shield_with_heart' : 
+                 resource.id === 'res-5' ? 'smart_toy' : 'language'}
               </span>
             </span>
             <div className="text-left">
@@ -237,30 +308,32 @@ export const ResourceViewerModal: React.FC<ResourceViewerModalProps> = ({
 
           <div className="flex items-center gap-2">
             {/* View selectors */}
-            <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-full flex gap-1 border">
-              <button
-                onClick={() => setActiveTab('interactive')}
-                className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all ${
-                  activeTab === 'interactive' 
-                    ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary' 
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                <span className="material-symbols-outlined text-sm">touch_app</span>
-                Interactive
-              </button>
-              <button
-                onClick={() => setActiveTab('print')}
-                className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all ${
-                  activeTab === 'print' 
-                    ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary' 
-                    : 'text-neutral-500 hover:text-neutral-800'
-                }`}
-              >
-                <span className="material-symbols-outlined text-sm">print</span>
-                Ficha Imprimible
-              </button>
-            </div>
+            {['res-1', 'res-2', 'res-3', 'res-4', 'res-5'].includes(resource.id) && (
+              <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-full flex gap-1 border">
+                <button
+                  onClick={() => setActiveTab('interactive')}
+                  className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all ${
+                    activeTab === 'interactive' 
+                      ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary' 
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">touch_app</span>
+                  Interactive
+                </button>
+                <button
+                  onClick={() => setActiveTab('print')}
+                  className={`px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all ${
+                    activeTab === 'print' 
+                      ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary' 
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">print</span>
+                  Ficha Imprimible
+                </button>
+              </div>
+            )}
 
             <button
               onClick={onClose}
@@ -1116,6 +1189,535 @@ export const ResourceViewerModal: React.FC<ResourceViewerModalProps> = ({
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* RESOURCE 5: MUNDIAL DIGITAL 2026 */}
+        {resource.id === 'res-5' && (
+          <div className="space-y-6">
+            {activeTab === 'interactive' ? (
+              <div className="space-y-6 text-left">
+                {/* Simulated Web App Frame */}
+                <div className="border border-neutral-200/80 dark:border-neutral-800 rounded-3xl overflow-hidden shadow-sm bg-[#fafafa] dark:bg-neutral-950">
+                  
+                  {/* Web Banner Style Header */}
+                  <div className="relative bg-black text-white p-6 md:p-8 flex flex-col md:flex-row items-center justify-between overflow-hidden border-b border-neutral-800">
+                    {/* Background image overlay */}
+                    {resource.imageUrl && (
+                      <div className="absolute inset-0 opacity-40 mix-blend-screen pointer-events-none">
+                        <img 
+                          src={resource.imageUrl} 
+                          className="w-full h-full object-cover" 
+                          alt="Banner BG"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                    {/* Glowing Accent Lines container */}
+                    <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/80 pointer-events-none" />
+                    
+                    {/* Logo & Headline */}
+                    <div className="relative z-10 flex items-center gap-4 text-center md:text-left flex-col md:flex-row animate-fade-in">
+                      <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-400/40 rounded-2xl flex items-center justify-center text-emerald-400 shadow-inner">
+                        <span className="material-symbols-outlined text-[36px] animate-pulse">sports_soccer</span>
+                      </div>
+                      <div>
+                        <h1 className="font-sans font-extrabold text-2xl md:text-3xl tracking-tight text-white flex items-center justify-center md:justify-start gap-2">
+                          MUNDIAL DIGITAL <span className="text-emerald-400 font-black">2026</span>
+                        </h1>
+                        <p className="text-xs md:text-sm text-neutral-300 font-medium">
+                          Un recorrido por las culturas digitales de los países participantes
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 md:mt-0 relative z-10 bg-emerald-400/10 text-emerald-300 border border-emerald-500/20 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs animate-pulse text-emerald-400">sensors</span>
+                      Demo Pedagógica Viva
+                    </div>
+                  </div>
+
+                  {/* Lower body of Simulated App */}
+                  <div className="p-6 md:p-8 min-h-[400px]">
+                    {/* HOME VIEW */}
+                    {mundialTab === 'home' && (
+                      <div className="max-w-2xl mx-auto text-center space-y-8 py-4">
+                        <div className="space-y-4">
+                          <p className="text-primary dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                            ¡EMPECEMOS A JUGAR!
+                          </p>
+                          <h2 className="font-headline font-black text-2xl md:text-4xl text-on-surface leading-tight tracking-tight">
+                            Explorá la cultura digital de los países del Mundial 2026
+                          </h2>
+                          <p className="text-neutral-500 dark:text-neutral-400 text-sm max-w-lg mx-auto">
+                            Descubrí cómo viven, juegan y usan tecnología en las distintas partes del mundo
+                          </p>
+                        </div>
+
+                        {/* Three Golden Bento Cards representing Buttons in Screenshot */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Card 1: Explorá */}
+                          <button
+                            onClick={() => setMundialTab('explora')}
+                            className="bg-[#fac10c] hover:bg-[#e0ad0b] text-slate-950 p-6 rounded-[2.5rem] border-2 border-amber-600 hover:scale-[1.02] shadow-sm active:scale-95 transition-all text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+                          >
+                            <span className="text-3xl group-hover:rotate-12 transition-transform">🌎</span>
+                            <span className="font-extrabold text-base tracking-tight">Explorá</span>
+                            <span className="text-[11px] font-semibold leading-normal opacity-90 block">
+                              Conocé la cultura digital de los países participantes.
+                            </span>
+                          </button>
+
+                          {/* Card 2: Jugá */}
+                          <button
+                            onClick={() => {
+                              setMundialTab('juga');
+                              setTriviaIndex(0);
+                              setTriviaScore(0);
+                              setTriviaSelectedAnswer(null);
+                              setTriviaCompleted(false);
+                            }}
+                            className="bg-[#fac10c] hover:bg-[#e0ad0b] text-slate-950 p-6 rounded-[2.5rem] border-2 border-amber-600 hover:scale-[1.02] shadow-sm active:scale-95 transition-all text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+                          >
+                            <span className="text-3xl group-hover:animate-bounce animate-duration-1000">🎮</span>
+                            <span className="font-extrabold text-base tracking-tight">Jugá</span>
+                            <span className="text-[11px] font-semibold leading-normal opacity-90 block">
+                              Poné a prueba tus conocimientos en la Trivia Digital.
+                            </span>
+                          </button>
+
+                          {/* Card 3: Investigá */}
+                          <button
+                            onClick={() => setMundialTab('investiga')}
+                            className="bg-[#fac10c] hover:bg-[#e0ad0b] text-slate-950 p-6 rounded-[2.5rem] border-2 border-amber-600 hover:scale-[1.02] shadow-sm active:scale-95 transition-all text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+                          >
+                            <span className="text-3xl group-hover:scale-110 transition-transform">🔎</span>
+                            <span className="font-extrabold text-base tracking-tight">Investigá</span>
+                            <span className="text-[11px] font-semibold leading-normal opacity-90 block">
+                              Descargá fichas y desafíos para profundizar la exploración.
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EXPLORA VIEW */}
+                    {mundialTab === 'explora' && (
+                      <div className="space-y-6">
+                        {/* Selector Navigation */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+                          <button
+                            onClick={() => setMundialTab('home')}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-neutral-800 bg-neutral-105 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 px-3.5 py-1.5 rounded-full transition-all cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            Volver al Inicio
+                          </button>
+
+                          {/* Country selector bar */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.keys(p_digitales).map(country => (
+                              <button
+                                key={country}
+                                onClick={() => setSelectedCountry(country)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                                  selectedCountry === country
+                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow'
+                                    : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 hover:bg-neutral-50'
+                                }`}
+                              >
+                                <span>{p_digitales[country].flag}</span> {country}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Country Detail Sheet */}
+                        {selectedCountry && (
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                            <div className="md:col-span-4 bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-950 p-6 rounded-3xl border border-neutral-200/60 dark:border-neutral-800 flex flex-col justify-center items-center text-center space-y-2">
+                              <span className="text-7xl select-none filter drop-shadow">
+                                {p_digitales[selectedCountry].flag}
+                              </span>
+                              <h3 className="font-headline font-extrabold text-2xl text-on-surface">
+                                {selectedCountry}
+                              </h3>
+                              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
+                                Cultura Digital Mundial
+                              </p>
+                            </div>
+
+                            <div className="md:col-span-8 flex flex-col justify-between space-y-4 text-left">
+                              <div className={`p-6 rounded-3xl border bg-gradient-to-br ${p_digitales[selectedCountry].color} space-y-3`}>
+                                <h4 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                                  <span className="material-symbols-outlined text-base">school</span>
+                                  Cultura Digital Escolar
+                                </h4>
+                                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                  {p_digitales[selectedCountry].culture}
+                                </p>
+                              </div>
+
+                              <div className="bg-amber-100/45 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/30 p-5 rounded-3xl space-y-2">
+                                <h4 className="font-bold text-xs text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm text-amber-600 animate-bounce">tips_and_updates</span>
+                                  Dato Curioso del País
+                                </h4>
+                                <p className="text-xs text-neutral-700 dark:text-neutral-300 italic leading-relaxed">
+                                  {p_digitales[selectedCountry].fact}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* JUGA VIEW - TRIVIA GAME */}
+                    {mundialTab === 'juga' && (
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between border-b pb-4">
+                          <button
+                            onClick={() => setMundialTab('home')}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-neutral-800 bg-neutral-105 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 px-3.5 py-1.5 rounded-full transition-all cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            Volver al Inicio
+                          </button>
+
+                          <div className="text-xs font-bold text-neutral-500 flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 px-3.5 py-1.5 rounded-full">
+                            <span>Puntos: <strong className="text-emerald-500 font-extrabold">{triviaScore}</strong></span>
+                            <span>•</span>
+                            <span>Pregunta: <strong className="text-primary">{triviaIndex + 1}/{triviaQuestions.length}</strong></span>
+                          </div>
+                        </div>
+
+                        {!triviaCompleted ? (
+                          <div className="max-w-xl mx-auto space-y-6 py-2">
+                            <div className="space-y-3">
+                              <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
+                                Saberes Digitales
+                              </span>
+                              <h3 className="font-headline font-extrabold text-lg md:text-xl text-on-surface leading-snug">
+                                {triviaQuestions[triviaIndex].q}
+                              </h3>
+                            </div>
+
+                            <div className="space-y-3">
+                              {triviaQuestions[triviaIndex].opts.map((opt, oIdx) => {
+                                let optClass = 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 text-neutral-700';
+                                if (triviaSelectedAnswer !== null) {
+                                  if (oIdx === triviaQuestions[triviaIndex].correct) {
+                                    optClass = 'bg-emerald-500/10 border-emerald-500 text-emerald-800 dark:text-emerald-400 font-bold';
+                                  } else if (triviaSelectedAnswer === oIdx) {
+                                    optClass = 'bg-red-500/10 border-red-500 text-red-800 dark:text-red-400';
+                                  } else {
+                                    optClass = 'opacity-50 border-neutral-200 dark:border-neutral-800';
+                                  }
+                                }
+
+                                return (
+                                  <button
+                                    key={oIdx}
+                                    onClick={() => {
+                                      if (triviaSelectedAnswer === null) {
+                                        setTriviaSelectedAnswer(oIdx);
+                                        if (oIdx === triviaQuestions[triviaIndex].correct) {
+                                          setTriviaScore(prev => prev + 10);
+                                        }
+                                      }
+                                    }}
+                                    disabled={triviaSelectedAnswer !== null}
+                                    className={`w-full text-left p-4 rounded-2xl border text-sm transition-all flex items-start gap-3 justify-between cursor-pointer ${optClass}`}
+                                  >
+                                    <span className="leading-snug">{opt}</span>
+                                    {triviaSelectedAnswer !== null && oIdx === triviaQuestions[triviaIndex].correct && (
+                                      <span className="material-symbols-outlined text-emerald-500 shrink-0 text-xl font-bold">check_circle</span>
+                                    )}
+                                    {triviaSelectedAnswer === oIdx && oIdx !== triviaQuestions[triviaIndex].correct && (
+                                      <span className="material-symbols-outlined text-red-500 shrink-0 text-xl font-bold">cancel</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {triviaSelectedAnswer !== null && (
+                              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-5 rounded-2xl border border-neutral-200/50 dark:border-neutral-800 space-y-3 animate-fade-in">
+                                <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
+                                  <strong>Explicación:</strong> {triviaQuestions[triviaIndex].why}
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    if (triviaIndex + 1 < triviaQuestions.length) {
+                                      setTriviaIndex(prev => prev + 1);
+                                      setTriviaSelectedAnswer(null);
+                                    } else {
+                                      setTriviaCompleted(true);
+                                    }
+                                  }}
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl block transition-all cursor-pointer"
+                                >
+                                  {triviaIndex + 1 < triviaQuestions.length ? 'Siguiente Pregunta' : 'Finalizar Desafío'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="max-w-md mx-auto text-center space-y-6 py-6 animate-fade-in">
+                            <span className="text-6xl animate-bounce inline-block">🏆</span>
+                            <div className="space-y-2">
+                              <h3 className="font-headline font-black text-2xl text-on-surface">¡Juego Completado!</h3>
+                              <p className="text-sm text-neutral-500">
+                                Lograste descifrar con éxito los misterios de las culturas digitales escolares.
+                              </p>
+                              <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-4 rounded-3xl max-w-xs mx-auto mt-4">
+                                <span className="text-[11px] uppercase font-bold text-emerald-600 tracking-wider block">Puntaje Final</span>
+                                <span className="text-4xl font-headline font-black text-emerald-500">{triviaScore} pts</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setTriviaIndex(0);
+                                setTriviaScore(0);
+                                setTriviaSelectedAnswer(null);
+                                setTriviaCompleted(false);
+                              }}
+                              className="px-6 py-2.5 bg-primary text-white font-bold text-xs rounded-full shadow cursor-pointer hover:bg-primary-dark"
+                            >
+                              Jugar de Nuevo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* INVESTIGA VIEW */}
+                    {mundialTab === 'investiga' && (
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between border-b pb-4">
+                          <button
+                            onClick={() => setMundialTab('home')}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-neutral-800 bg-neutral-105 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 px-3.5 py-1.5 rounded-full transition-all cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            Volver al Inicio
+                          </button>
+
+                          <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-[#fac10c]/10 text-amber-700">
+                            Consignas y Desafíos
+                          </span>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h3 className="font-bold text-base text-neutral-800 dark:text-neutral-200 text-left">
+                            Estaciones de Innovación: Desafíos Escolares 🚀
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* challenge 1 */}
+                            <div className="bg-white dark:bg-neutral-900 border border-neutral-200/50 dark:border-neutral-800 p-5 rounded-2xl flex flex-col justify-between text-left space-y-4">
+                              <div className="space-y-2">
+                                <span className="text-xs font-bold text-sky-500 bg-sky-500/10 px-2.5 py-0.5 rounded-full">A. Solución Móvil</span>
+                                <h4 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 leading-snug">El Sistema SMS</h4>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                                  Inspirados en las plataformas de Nigeria, diseñen un boceto de alertas escolares que funcione con mensajería móvil de texto básico en zonas con baja señal.
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-neutral-400 font-mono">Consigna 1 • TIC Básica</span>
+                            </div>
+
+                            {/* challenge 2 */}
+                            <div className="bg-white dark:bg-neutral-900 border border-neutral-200/50 dark:border-neutral-800 p-5 rounded-2xl flex flex-col justify-between text-left space-y-4">
+                              <div className="space-y-2">
+                                <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">B. Orquesta Maker</span>
+                                <h4 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 leading-snug">El Piano Frutal</h4>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                                  Basándote en los FabLabs de Brasil, simula un circuito conectando bananas a tu teclado de computadora mediante cables de contacto y diseña notas musicales visuales.
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-neutral-400 font-mono">Consigna 2 • Creatividad</span>
+                            </div>
+
+                            {/* challenge 3 */}
+                            <div className="bg-white dark:bg-neutral-900 border border-neutral-200/50 dark:border-neutral-800 p-5 rounded-2xl flex flex-col justify-between text-left space-y-4">
+                              <div className="space-y-2">
+                                <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full">C. Algoritmia</span>
+                                <h4 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 leading-snug">Autómata del Aula</h4>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                                  De acuerdo a la práctica de Japón, escribe un algoritmo secuencial para guiar a un robot ficticio en la tarea de organizar los borradores del aula.
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-neutral-400 font-mono">Consigna 3 • Diseño</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-neutral-50 dark:bg-neutral-800/40 p-5 rounded-3xl border text-center flex flex-col items-center space-y-3">
+                  <span className="material-symbols-outlined text-[36px] text-neutral-400">link</span>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-on-surface">¿Deseas acceder al portal oficial del Mundial Digital?</h4>
+                    <p className="text-xs text-neutral-500 leading-normal max-w-sm mx-auto">
+                      Allí podrás visualizar la grilla, los grupos de alumnos de varias escuelas de la Ciudad, y los proyectos interactivos creados por ellos.
+                    </p>
+                  </div>
+                  {resource.url && (
+                    <a
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 bg-[#fac10c] hover:bg-yellow-400 text-slate-900 font-bold text-xs px-6 py-2.5 rounded-full transition-all shadow-sm cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">open_in_new</span>
+                      Visitar mundialdigital2026.bue.edu.ar
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // PRINT RES-5 WORKSHEET
+              <div id="printable-resource" className="space-y-6 text-left border p-6 md:p-8 rounded-3xl bg-white dark:bg-neutral-900 shadow-sm">
+                <div className="border-b pb-4 flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-mono tracking-wider text-neutral-400 uppercase">Secuencia Didáctica Escolar</span>
+                    <h2 className="font-headline font-black text-2xl text-on-surface">Mundial Digital 2026</h2>
+                    <p className="text-xs text-neutral-500">Un recorrido pedagógico para la integración lúdica de Tecnologías de Información en Escuelas Verdes.</p>
+                  </div>
+                  <span className="text-4xl select-none">🏆</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-primary uppercase tracking-wider flex items-center gap-1 border-b pb-1">
+                      <span className="material-symbols-outlined text-sm">school</span>
+                      Objetivos de Aprendizaje
+                    </h3>
+                    <ul className="text-xs text-neutral-600 dark:text-neutral-450 space-y-2 list-disc pl-4 leading-relaxed">
+                      <li>Descubrir la relación globalizada del uso de la informática en escuelas de diferentes continentes (América Latina, África, Asia y Europa).</li>
+                      <li>Vincular el aprendizaje de la cibernética y hardware libre con la resolución de problemáticas locales y el manejo seguro de residuos.</li>
+                      <li>Desarrollar capacidades de algoritmia elemental y diseño centrado en el alumno.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-primary uppercase tracking-wider flex items-center gap-1 border-b pb-1">
+                      <span className="material-symbols-outlined text-sm">construction</span>
+                      Materiales sugeridos
+                    </h3>
+                    <ul className="text-xs text-neutral-600 dark:text-neutral-450 space-y-2 list-disc pl-4 leading-relaxed">
+                      <li>Dispositivos móviles o netbooks escolares con simuladores de programación visual.</li>
+                      <li>Kits de placas electrónicas de baja complejidad con terminales USB.</li>
+                      <li>Insumos reciclables escolares (papel, envases no clorados).</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="font-medium text-sm text-primary uppercase tracking-wider flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">edit_document</span>
+                    Consignas del Alumno / Respuestas del Docente
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl space-y-1">
+                      <p className="text-xs font-bold">1. Estación Brasil (Orquesta Maker):</p>
+                      <p className="text-xs text-neutral-500 leading-normal">
+                        Dibujen el diagrama de cables que conectan una fruta a la controladora USB. Definan qué sonido producirá. Recordar aislar los contactos correctamente.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-2xl space-y-1">
+                      <p className="text-xs font-bold">2. Estación Japón (Algoritmia del Cuidado):</p>
+                      <p className="text-xs text-neutral-500 leading-normal">
+                        Escriban las instrucciones secuenciales para que un robot automatice la clasificación de objetos reciclables de su aula (botellas, tapas, cartones).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-medium text-xs uppercase tracking-wider text-neutral-500">Notas de Trabajo de Aula</h4>
+                  <textarea
+                    value={userMundialNotes}
+                    onChange={(e) => setUserMundialNotes(e.target.value)}
+                    placeholder="Escribe aquí observaciones grupales, pautas de evaluación específicas o adaptaciones curriculares indicadas..."
+                    className="w-full text-xs p-3 rounded-2xl border bg-neutral-50 outline-none text-neutral-750 min-h-24 dark:bg-neutral-950 focus:border-indigo-500 focus:bg-white"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center gap-4 pt-2">
+                  <span className="text-[10px] text-neutral-400 italic">Mundial Digital 2026 - Planificación adaptada para talleres escolares.</span>
+                  <button
+                    onClick={handlePrint}
+                    className="px-6 py-2.5 bg-primary text-white rounded-full font-bold text-xs inline-flex items-center gap-1.5 shadow"
+                  >
+                    <span className="material-symbols-outlined text-sm">print</span>
+                    Imprimir Ficha de Aula
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FALLBACK FOR EXTERNAL PROGRAMS OR OTHER RESOURCES */}
+        {!['res-1', 'res-2', 'res-3', 'res-4', 'res-5'].includes(resource.id) && (
+          <div className="space-y-6 text-left py-4">
+            <div className="bg-neutral-50 dark:bg-neutral-800/45 rounded-3xl p-6 md:p-8 border border-neutral-200/50 flex flex-col items-center text-center space-y-6 max-w-2xl mx-auto">
+              {resource.imageUrl ? (
+                <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-neutral-200/60 dark:border-neutral-700 shadow-sm relative group">
+                  <img
+                    src={resource.imageUrl}
+                    alt={resource.titulo}
+                    className="w-full h-auto object-cover max-h-72 transition-transform duration-300 group-hover:scale-[1.01]"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-3 right-3 bg-neutral-900/70 backdrop-blur-md text-white text-[10px] uppercase font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs animate-pulse text-emerald-400">sensors</span>
+                    Demo de Interface
+                  </div>
+                </div>
+              ) : (
+                <span className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 rounded-2xl">
+                  <span className="material-symbols-outlined text-[48px]">language</span>
+                </span>
+              )}
+              <div className="space-y-2">
+                <h4 className="font-headline font-bold text-xl text-on-surface">{resource.titulo}</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed max-w-md">
+                  {resource.descripcion}
+                </p>
+                <div className="flex justify-center gap-3 pt-2">
+                  <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
+                    Materia: {resource.materia}
+                  </span>
+                  {resource.url && (
+                    <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                      Enlace Externo Habilitado
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {resource.url && (
+                <div className="pt-4 w-full max-w-sm">
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-full transition-all shadow-md hover:scale-[1.02] cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">open_in_new</span>
+                    Acceder al Programa Oficial
+                  </a>
+                  <p className="text-[11px] text-neutral-400 mt-3 leading-normal">
+                    Este link te llevará al portal oficial de <strong>{resource.titulo}</strong> para explorar sus herramientas, grupos y proyectos pedagógicos activos.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

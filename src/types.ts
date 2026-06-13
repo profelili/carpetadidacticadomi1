@@ -57,6 +57,7 @@ export interface ResourceMaterial {
   descripcion: string;
   materia: string;
   url?: string;
+  imageUrl?: string;
 }
 
 export interface VisitaRegistro {

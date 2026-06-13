@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Student, ActivityPlan, AttachedFile } from '../types';
+import { Student, ActivityPlan, AttachedFile, ResourceMaterial } from '../types';
+import { DEFAULT_RESOURCES } from '../data';
 import { parseGoogleDriveUrl } from '../lib/drive';
-import tallerImg from '../assets/images/regenerated_image_1780834857342.jpg';
+import tallerImg from '../assets/images/escuelas_verdes_taller_1781302131421.jpg';
 
 const renderTextWithLinks = (text: string) => {
   if (!text) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+|(?:gemini|drive)\.google\.com\/[^\s()<>]+)/gi;
   const parts = text.split(urlRegex);
   return parts.map((part, i) => {
     if (part.match(urlRegex)) {
+      let href = part;
+      if (!/^https?:\/\//i.test(href)) {
+        href = 'https://' + href;
+      }
       return (
         <a
           key={i}
-          href={part}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary hover:underline font-bold inline-flex items-center gap-0.5 break-all"
+          className="text-primary hover:underline font-bold inline-flex items-center gap-0.5 break-all cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
         >
           <span className="material-symbols-outlined text-[11px] inline-block">open_in_new</span>
           {part}
@@ -100,6 +106,8 @@ interface HogarViewProps {
   onDeleteActivity?: (id: string) => void;
   selectedStudentId?: string;
   onSelectStudent?: (id: string) => void;
+  onRestoreHogarActivities?: () => void;
+  onPreviewResource?: (res: ResourceMaterial) => void;
 }
 
 export const HogarView: React.FC<HogarViewProps> = ({
@@ -110,6 +118,8 @@ export const HogarView: React.FC<HogarViewProps> = ({
   onDeleteActivity,
   selectedStudentId: selectedStudentIdProp,
   onSelectStudent,
+  onRestoreHogarActivities,
+  onPreviewResource,
 }) => {
   const hogarStudents = students.filter(s => s.contexto === 'Hogar');
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
@@ -127,6 +137,14 @@ export const HogarView: React.FC<HogarViewProps> = ({
   // Filter activities for this selected student
   const studentActivities = activities.filter(
     a => a.studentId === selectedStudentId
+  );
+
+  const defaultHogars = [
+    { id: 'act-5', studentId: 'hog-1', name: 'Termofusión (Giovani Baden)' },
+    { id: 'act-6', studentId: 'hog-2', name: 'Termofusión (Mario Sarmiento)' }
+  ];
+  const missingHogarDefaultActivities = defaultHogars.filter(
+    def => !activities.some(act => act.id === def.id)
   );
 
   // Modals / Mini game inside Hogar Juanito context
@@ -255,7 +273,7 @@ export const HogarView: React.FC<HogarViewProps> = ({
                 Proyecto Escuelas Verdes
               </span>
               <h2 className="font-headline-md text-xl md:text-2xl font-bold">
-                Planificación Semanal: Taller de Termofusión
+                Taller de Escuelas Verdes
               </h2>
             </div>
           </div>
@@ -332,6 +350,27 @@ export const HogarView: React.FC<HogarViewProps> = ({
               </button>
             )}
           </div>
+
+          {missingHogarDefaultActivities.length > 0 && onRestoreHogarActivities && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-dashed border-emerald-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-emerald-600 text-3xl shrink-0">info_outline</span>
+                <div className="text-left">
+                  <h4 className="font-bold text-emerald-850 dark:text-emerald-400 text-sm">Se detectaron actividades sugeridas eliminadas</h4>
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-normal mt-0.5">
+                    Faltan planes por defecto de Hogar Juanito: <strong className="text-emerald-700 dark:text-emerald-300">{missingHogarDefaultActivities.map(a => a.name).join(' e ')}</strong>.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onRestoreHogarActivities}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs shrink-0 inline-flex items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined text-sm">restore</span>
+                Restaurar sugeridos
+              </button>
+            </div>
+          )}
 
           {studentActivities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -428,12 +467,127 @@ export const HogarView: React.FC<HogarViewProps> = ({
                         </div>
                       );
                     })()}
+                    {(() => {
+                      const txtValue = (activity.recursoClave || '').trim();
+                      if (!txtValue) return null;
+
+                      // Load custom external resources dynamically
+                      let customList: ResourceMaterial[] = [];
+                      try {
+                        const stored = localStorage.getItem('custom_external_resources');
+                        if (stored) customList = JSON.parse(stored);
+                      } catch (e) {
+                        console.error(e);
+                      }
+
+                      const allResources = [...DEFAULT_RESOURCES, ...customList];
+                      const matched = allResources.find(r => 
+                        r.titulo.toLowerCase() === txtValue.toLowerCase() ||
+                        txtValue.toLowerCase().includes(r.titulo.toLowerCase()) ||
+                        r.titulo.toLowerCase().includes(txtValue.toLowerCase())
+                      );
+
+                      if (matched) {
+                        if (matched.url) {
+                          return (
+                            <a
+                              href={matched.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mb-4 w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="material-symbols-outlined text-base">language</span>
+                              <span>🌐 Abrir Recurso Externo: {matched.titulo}</span>
+                            </a>
+                          );
+                        } else if (onPreviewResource) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => onPreviewResource(matched)}
+                              className="mb-4 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                            >
+                              <span className="material-symbols-outlined text-base">smart_toy</span>
+                              <span>🎮 Jugar con Recurso Adaptado: {matched.titulo}</span>
+                            </button>
+                          );
+                        }
+                      }
+
+                      // Fallback matching logic for original identifiers to be thoroughly safe
+                      let detectedId: string | null = null;
+                      const txt = txtValue.toLowerCase();
+                      if (txt.includes('pitagórica') || txt.includes('pitagorica') || txt.includes('tabla pit')) {
+                        detectedId = 'res-1';
+                      } else if (txt.includes('waldorf') || txt.includes('circulo') || txt.includes('círculo')) {
+                        detectedId = 'res-2';
+                      } else if (txt.includes('efemérides') || txt.includes('1810') || txt.includes('revolución') || txt.includes('revolucion')) {
+                        detectedId = 'res-3';
+                      } else if (txt.includes('termofusión') || txt.includes('termofusion') || txt.includes('seguridad de termo') || txt.includes('manual de seguridad')) {
+                        detectedId = 'res-4';
+                      } else if (txt.includes('mundial') || txt.includes('digital 2026') || txt.includes('mundial 2026')) {
+                        detectedId = 'res-5';
+                      }
+
+                      if (detectedId && onPreviewResource) {
+                        const mappedResource = DEFAULT_RESOURCES.find(r => r.id === detectedId);
+                        if (mappedResource) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => onPreviewResource(mappedResource)}
+                              className="mb-4 w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                            >
+                              <span className="material-symbols-outlined text-base">smart_toy</span>
+                              <span>🎮 Jugar con Recurso Adaptado: {mappedResource.titulo}</span>
+                            </button>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div className="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-primary flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-primary flex items-center gap-1 flex-wrap">
                       <span className="material-symbols-outlined text-[13px]">extension</span>
-                      {activity.recursoClave || 'Sin recursos'}
+                      {(() => {
+                        const recurso = activity.recursoClave;
+                        if (!recurso) return 'Sin recursos';
+                        const urlRegex = /((?:https?:\/\/|www\.)[^\s()<>]+|(?:gemini|drive)\.google\.com\/[^\s()<>]+)/gi;
+                        const parts = recurso.split(urlRegex);
+                        const matches = recurso.match(urlRegex);
+                        if (matches) {
+                          return (
+                            <span className="flex flex-wrap items-center gap-1">
+                              {parts.map((part, index) => {
+                                if (part.match(urlRegex)) {
+                                  let href = part;
+                                  if (!/^https?:\/\//i.test(href)) {
+                                    href = 'https://' + href;
+                                  }
+                                  return (
+                                    <a
+                                      key={index}
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-primary hover:underline font-bold bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-lg transition-all cursor-pointer"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <span className="material-symbols-outlined text-[11px]">open_in_new</span>
+                                      <span className="max-w-[160px] truncate">{part}</span>
+                                    </a>
+                                  );
+                                }
+                                return <span key={index}>{part}</span>;
+                              })}
+                            </span>
+                          );
+                        }
+                        return recurso;
+                      })()}
                     </span>
                     <div className="flex gap-1">
                       {activity.tags.map(tag => (

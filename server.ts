@@ -42,22 +42,17 @@ async function startServer() {
 
       // Inject data payload if provided
       if (students || activities) {
-        // Escaping helper for single-quotes inside stringified JSON
-        const escapedStudents = students ? JSON.stringify(students).replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '[]';
-        const escapedActivities = activities ? JSON.stringify(activities).replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '[]';
+        const escapedStudentsJSON = students ? JSON.stringify(students).replace(/<\/script>/g, '<\\/script>') : '[]';
+        const escapedActivitiesJSON = activities ? JSON.stringify(activities).replace(/<\/script>/g, '<\\/script>') : '[]';
+        const downloadId = String(Date.now());
 
         const payloadScript = `
 <!-- AUTOMATIC DATA INJECTION IN SINGLE-FILE DEPLOYMENT -->
 <script id="offline-data-payload">
-  (function() {
-    try {
-      localStorage.setItem('carp_students', JSON.stringify(${escapedStudents}));
-      localStorage.setItem('carp_activities', JSON.stringify(${escapedActivities}));
-      console.log('Datos del educador cargados con éxito de manera persistente.');
-    } catch(e) {
-      console.error('Error cargando inicializaciones de datos:', e);
-    }
-  })();
+  window.OFFLINE_STUDENTS = ${escapedStudentsJSON};
+  window.OFFLINE_ACTIVITIES = ${escapedActivitiesJSON};
+  window.OFFLINE_DOWNLOAD_ID = "${downloadId}";
+  console.log('Datos offline embebidos listos para cargar en la carpeta didáctica.');
 </script>
 `;
         // Inject script inside <head> to run before page load

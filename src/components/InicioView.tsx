@@ -728,26 +728,47 @@ export const InicioView: React.FC<InicioViewProps> = ({
           {filteredResources.map((res, index) => {
             let colorClass = 'bg-primary/10 text-primary';
             let icon = 'calculate';
-            if (res.materia.startsWith('C.')) {
+            if (res.materia === 'CUENTOS' || res.materia === 'Cuentos') {
+              colorClass = 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300';
+              icon = 'auto_stories';
+            } else if (res.materia.startsWith('C.')) {
               colorClass = 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700';
               icon = 'recycling';
             } else if (res.materia.startsWith('P.')) {
               colorClass = 'bg-amber-50 dark:bg-amber-950/20 text-amber-700';
               icon = 'menu_book';
             } else if (res.materia.startsWith('Pla')) {
-              colorClass = 'bg-blue-50 dark:bg-blue-950/20 text-blue-700';
-              icon = 'brush';
+              colorClass = 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300';
+              icon = 'laptop_chromebook';
+            } else if (res.materia.startsWith('Tec')) {
+              colorClass = 'bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300';
+              icon = 'smart_toy';
+            } else if (res.materia.startsWith('Esc') || res.materia === 'Escuelas Verdes') {
+              colorClass = 'bg-teal-50 dark:bg-teal-950/20 text-teal-700 dark:text-teal-300';
+              icon = 'forest';
             }
 
             return (
               <div
                 key={res.id || index}
-                className="bg-white dark:bg-inverse-surface border border-outline-variant rounded-2xl overflow-hidden hover:shadow-lg transition-all group flex flex-col justify-between text-left"
+                onClick={() => onDownloadResource(res)}
+                className="bg-white dark:bg-inverse-surface border border-outline-variant rounded-2xl overflow-hidden hover:shadow-lg transition-all group flex flex-col justify-between text-left cursor-pointer"
               >
-                <div className={`h-32 ${colorClass} flex items-center justify-center group-hover:opacity-90 transition-colors`}>
-                  <span className="material-symbols-outlined text-[48px]">
-                    {icon}
-                  </span>
+                <div className="h-32 overflow-hidden relative group-hover:opacity-90 transition-colors">
+                  {res.imageUrl ? (
+                    <img
+                      src={res.imageUrl}
+                      alt={res.titulo}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className={`h-full w-full ${colorClass} flex items-center justify-center`}>
+                      <span className="material-symbols-outlined text-[48px]">
+                        {icon}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
@@ -759,10 +780,14 @@ export const InicioView: React.FC<InicioViewProps> = ({
                       {res.materia}
                     </span>
                     <button
-                      onClick={() => onDownloadResource(res)}
-                      className="material-symbols-outlined text-[18px] text-outline group-hover:text-primary transition-colors hover:scale-110"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownloadResource(res);
+                      }}
+                      className="material-symbols-outlined text-[18px] text-outline group-hover:text-primary transition-colors hover:scale-110 cursor-pointer"
+                      title={res.url ? "Abrir Recurso Externo" : "Habilitar Recurso Interactivo"}
                     >
-                      download
+                      {res.url ? 'launch' : 'download'}
                     </button>
                   </div>
                 </div>
