@@ -199,9 +199,15 @@ export const HogarView: React.FC<HogarViewProps> = ({
       {/* Left panel: Active Students list */}
       <section className="lg:col-span-3 space-y-4">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-headline-sm text-lg font-bold text-primary">Alumnos Activos</h3>
-          <span className="bg-secondary-container text-on-secondary-container px-2.5 py-0.5 rounded-full text-xs font-bold font-caption">
-            {hogarStudents.length} alumnos
+          <h3 className="font-headline-sm text-lg font-bold text-primary">Alumnos</h3>
+          <span className="bg-secondary-container text-on-secondary-container px-2.5 py-0.5 rounded-full text-xs font-bold font-caption flex items-center gap-1.5">
+            <span>{hogarStudents.filter(s => (s.estado || 'Activo') === 'Activo').length} Activos</span>
+            {hogarStudents.some(s => s.estado === 'Alta médica') && (
+              <>
+                <span className="opacity-40">•</span>
+                <span className="text-teal-600 dark:text-teal-400 font-extrabold">{hogarStudents.filter(s => s.estado === 'Alta médica').length} Alta Médica</span>
+              </>
+            )}
           </span>
         </div>
         
@@ -232,7 +238,18 @@ export const HogarView: React.FC<HogarViewProps> = ({
                     {student.avatarInitials}
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="font-bold text-on-surface text-sm">{student.nombre} {student.apellido}</span>
+                    <span className="font-bold text-on-surface text-sm flex items-center gap-1.5 flex-wrap">
+                      {student.nombre} {student.apellido}
+                      {student.estado && student.estado !== 'Activo' && (
+                        <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border uppercase tracking-wider ${
+                          student.estado === 'Alta médica'
+                            ? 'bg-teal-55 border-teal-200 text-teal-700 dark:bg-teal-950/20 dark:border-teal-900 dark:text-teal-300'
+                            : 'bg-rose-50 border-rose-220 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-300'
+                        }`}>
+                          {student.estado}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-caption text-secondary font-medium">
                       {student.diagnostico || 'Educación especial'}
                     </span>

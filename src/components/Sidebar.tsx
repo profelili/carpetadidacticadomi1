@@ -1,5 +1,6 @@
 import React from 'react';
-import avatarImg from '../assets/images/liliana_line_art_avatar_1780774966241.png';
+import avatarImg from '../assets/images/liliana_line_art_avatar_1780774966241.jpg';
+import logoImg from '../assets/images/carpeta_logo_1781462815966.jpg';
 
 interface SidebarProps {
   activeTab: string;
@@ -22,8 +23,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center gap-3">
           <img
             alt="Carpeta Didáctica Logo"
-            className="h-10 w-auto object-contain shrink-0"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwZERkGTNHLFi2jlAE8-jRQUKCW07vkVuKz-Lv9R8jpUVfdY-ylHyBi8-mfy7T5Vb2gD9kauq08cR_fLT8k-aYCdnfO10RU-srYJCjyvQ8tnFJ6cfmc_yvzS4rizRU0ExeTZSDrUMWgcGsYtk064npNbbxG7HxOocNnx08nlJh8hF7tzk71iosUfRBJRsjl6gSDSD_oNNoi4y7cDCKeJA6aqIesvYRsZszRmrra6CdK_TGsGZUt3oyVwMi8-AUpXXW-Jk6L1ZDkxQ"
+            className="h-10 w-10 object-cover shrink-0 rounded-2xl shadow-sm border border-outline/15 hover:scale-110 active:scale-95 hover:rotate-3 transition-all duration-300 ease-out cursor-pointer"
+            src={logoImg}
+            referrerPolicy="no-referrer"
           />
           <div>
             <h1 className="font-headline-sm text-lg font-bold text-primary leading-tight">
@@ -48,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Alvarez Liliana
           </p>
           <p id="usr-school-name" className="text-[11px] text-on-surface-variant truncate">
-            Escuela Especial Domiciliaria N°1
+            Mg. Especial Domiciliaria N°1
           </p>
         </div>
       </div>

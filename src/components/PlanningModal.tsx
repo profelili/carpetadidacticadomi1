@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Student, ActivityPlan, AttachedFile, ResourceMaterial } from '../types';
 import { DEFAULT_RESOURCES } from '../data';
+import { compressImageDataUrl } from '../lib/compressor';
 
 interface PlanningModalProps {
   onClose: () => void;
@@ -330,11 +331,19 @@ export const PlanningModal: React.FC<PlanningModalProps> = ({
   const readFileAsAttachedFile = (file: File): Promise<AttachedFile> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
+        let dataUrl = reader.result as string;
+        if (file.type && file.type.startsWith('image/')) {
+          try {
+            dataUrl = await compressImageDataUrl(dataUrl);
+          } catch (e) {
+            console.error('Error compressing image on input:', e);
+          }
+        }
         resolve({
           name: file.name,
           type: file.type || 'application/octet-stream',
-          dataUrl: reader.result as string,
+          dataUrl: dataUrl,
         });
       };
       reader.onerror = () => reject(new Error('Error al leer el archivo'));
@@ -711,9 +720,14 @@ export const PlanningModal: React.FC<PlanningModalProps> = ({
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   const reader = new FileReader();
-                                  reader.onloadend = () => {
+                                  reader.onloadend = async () => {
                                     if (typeof reader.result === 'string') {
-                                      setNewExtImgUrl(reader.result);
+                                      try {
+                                        const compressed = await compressImageDataUrl(reader.result);
+                                        setNewExtImgUrl(compressed);
+                                      } catch (e) {
+                                        setNewExtImgUrl(reader.result);
+                                      }
                                     }
                                   };
                                   reader.readAsDataURL(file);

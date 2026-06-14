@@ -206,8 +206,14 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
       <section className="lg:col-span-4 flex flex-col gap-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-headline-sm text-lg font-bold text-primary">Alumnos</h3>
-          <span className="bg-secondary-container text-on-secondary-container text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-            {domiciliarios.length} Activos
+          <span className="bg-secondary-container text-on-secondary-container text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <span>{domiciliarios.filter(s => (s.estado || 'Activo') === 'Activo').length} Activos</span>
+            {domiciliarios.some(s => s.estado === 'Alta médica') && (
+              <>
+                <span className="opacity-40">•</span>
+                <span className="text-teal-600 dark:text-teal-400 font-extrabold">{domiciliarios.filter(s => s.estado === 'Alta médica').length} Alta Médica</span>
+              </>
+            )}
           </span>
         </div>
         
@@ -240,8 +246,17 @@ export const DomiciliariosView: React.FC<DomiciliariosViewProps> = ({
                       {student.avatarInitials}
                     </div>
                     <div>
-                      <h4 className="font-bold text-on-surface text-base group-hover:text-primary transition-colors">
+                      <h4 className="font-bold text-on-surface text-base group-hover:text-primary transition-colors flex items-center gap-1.5 flex-wrap">
                         {student.nombre} {student.apellido}
+                        {student.estado && student.estado !== 'Activo' && (
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border uppercase tracking-wider ${
+                            student.estado === 'Alta médica'
+                              ? 'bg-teal-50 border-teal-200 text-teal-700 dark:bg-teal-950/20 dark:border-teal-900 dark:text-teal-300'
+                              : 'bg-rose-50 border-rose-220 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-300'
+                          }`}>
+                            {student.estado}
+                          </span>
+                        )}
                       </h4>
                       <span className="bg-primary-container/20 text-on-primary-fixed-variant text-caption px-2.5 py-0.5 rounded-full font-medium">
                         {student.id === 'dom-1' ? 'Primaria - 4to Año' : 'Primaria - 6to Año'}

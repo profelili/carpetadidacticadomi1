@@ -12,7 +12,8 @@ import { INITIAL_STUDENTS, INITIAL_ACTIVITIES, DEFAULT_RESOURCES } from './data'
 import { Student, ActivityPlan, ResourceMaterial } from './types';
 import { saveActivitiesToDB, loadActivitiesFromDB } from './lib/db';
 import { ResourceViewerModal } from './components/ResourceViewerModal';
-import avatarImg from './assets/images/liliana_line_art_avatar_1780774966241.png';
+import avatarImg from './assets/images/liliana_line_art_avatar_1780774966241.jpg';
+import logoImg from './assets/images/carpeta_logo_1781462815966.jpg';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('inicio');
@@ -36,7 +37,16 @@ export default function App() {
       }
 
       const saved = localStorage.getItem('carp_students');
-      return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
+      if (saved) {
+        const parsed = JSON.parse(saved) as Student[];
+        return parsed.map(s => {
+          if (s.id === 'hosp-3' && s.estado === 'Activo') {
+            return { ...s, estado: 'Alta médica' };
+          }
+          return s;
+        });
+      }
+      return INITIAL_STUDENTS;
     } catch (e) {
       console.error('Error parsing carp_students from localStorage', e);
       return INITIAL_STUDENTS;
@@ -124,26 +134,62 @@ export default function App() {
   const handleDownloadSite = async () => {
     try {
       setIsExporting(true);
-      const response = await fetch('/api/download-single-html', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          students,
-          activities: activities.map(act => ({
-            ...act,
-            // Keep full content intact
-          })),
-        }),
+      // Fetch the clean HTML template via GET (0 payload uploaded to server, 413-proof!)
+      // cache: 'no-store' and timestamp query completely bypasses browser and proxy caches
+      const response = await fetch(`/api/download-single-html?t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store',
       });
 
       if (!response.ok) {
         const errorMsg = await response.text();
-        throw new Error(errorMsg || 'No se pudo generar el archivo.');
+        throw new Error(errorMsg || 'No se pudo generar el archivo base.');
       }
 
-      const blob = await response.blob();
+      let html = await response.text();
+
+      // Safe escaper to bypass </script> injections
+      const escapeScript = (str: string) => str.replace(/<\/script>/ig, '<\\/script>');
+
+      // Client-side injection of current students, activities, and all localized tracker datasets
+      const escapedStudentsJSON = students ? escapeScript(JSON.stringify(students)) : '[]';
+      const escapedActivitiesJSON = activities ? escapeScript(JSON.stringify(activities)) : '[]';
+      
+      const weeksJSON = escapeScript(localStorage.getItem('carp_weeks') || '[]');
+      const externalUrlJSON = escapeScript(JSON.stringify(localStorage.getItem('carp_external_sheet_url') || ''));
+      const externalTitleJSON = escapeScript(JSON.stringify(localStorage.getItem('carp_external_sheet_title') || ''));
+      const visitHistoryJSON = escapeScript(localStorage.getItem('carp_visit_history') || '[]');
+      const customResourcesJSON = escapeScript(localStorage.getItem('custom_external_resources') || '[]');
+      
+      const downloadId = String(Date.now());
+
+      const closeScriptTag = String.fromCharCode(60, 47, 115, 99, 114, 105, 112, 116, 62);
+
+      const payloadScript = `
+<!-- AUTOMATIC DATA INJECTION IN SINGLE-FILE DEPLOYMENT -->
+<script id="offline-data-payload">
+  window.OFFLINE_STUDENTS = ${escapedStudentsJSON};
+  window.OFFLINE_ACTIVITIES = ${escapedActivitiesJSON};
+  window.OFFLINE_WEEKS = ${weeksJSON};
+  window.OFFLINE_EXTERNAL_SHEET_URL = ${externalUrlJSON};
+  window.OFFLINE_EXTERNAL_SHEET_TITLE = ${externalTitleJSON};
+  window.OFFLINE_VISIT_HISTORY = ${visitHistoryJSON};
+  window.OFFLINE_CUSTOM_RESOURCES = ${customResourcesJSON};
+  window.OFFLINE_DOWNLOAD_ID = "${downloadId}";
+  console.log('Datos offline embebidos listos para cargar en la carpeta didáctica autónoma.');
+` + closeScriptTag + `\n`;
+
+      // Inject script inside <head> securely at the very beginning of the head using split-literal to avoid JS inlining
+      const headTagName = ['<', 'head', '>'].join('');
+      const headOpenIndex = html.indexOf(headTagName);
+      if (headOpenIndex !== -1) {
+        html = html.substring(0, headOpenIndex + headTagName.length) + '\n' + payloadScript + html.substring(headOpenIndex + headTagName.length);
+      } else {
+        html = payloadScript + html;
+      }
+
+      // Create a blob in memory and trigger natural browser download
+      const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -181,9 +227,14 @@ export default function App() {
         const isNewDownload = embeddedDownloadId && (embeddedDownloadId !== loadedDownloadId);
 
         if (isNewDownload) {
-          console.log('Sincronizando nuevas actividades y alumnos embebidos...');
+          console.log('Sincronizando nuevas actividades, almunos, planillas e historias embebidos...');
           const embeddedActivities = (window as any).OFFLINE_ACTIVITIES;
           const embeddedStudents = (window as any).OFFLINE_STUDENTS;
+          const embeddedWeeks = (window as any).OFFLINE_WEEKS;
+          const embeddedExternalUrl = (window as any).OFFLINE_EXTERNAL_SHEET_URL;
+          const embeddedExternalTitle = (window as any).OFFLINE_EXTERNAL_SHEET_TITLE;
+          const embeddedVisitHistory = (window as any).OFFLINE_VISIT_HISTORY;
+          const embeddedCustomResources = (window as any).OFFLINE_CUSTOM_RESOURCES;
 
           if (embeddedActivities && Array.isArray(embeddedActivities)) {
             await saveActivitiesToDB(embeddedActivities);
@@ -201,6 +252,43 @@ export default function App() {
             } catch (err) {
               console.warn('LocalStorage error for students caching:', err);
             }
+          }
+
+          // Sync tracking sheet weeks
+          if (embeddedWeeks && Array.isArray(embeddedWeeks)) {
+            try {
+              localStorage.setItem('carp_weeks', JSON.stringify(embeddedWeeks));
+              console.log('Semanas de planilla sincronizadas correctamente.');
+            } catch (err) {
+              console.warn('Error saving embedded weeks to localStorage:', err);
+            }
+          }
+
+          // Sync official linked Google Sheets URL & title
+          if (typeof embeddedExternalUrl === 'string') {
+            try {
+              localStorage.setItem('carp_external_sheet_url', embeddedExternalUrl);
+            } catch (err) {}
+          }
+          if (typeof embeddedExternalTitle === 'string') {
+            try {
+              localStorage.setItem('carp_external_sheet_title', embeddedExternalTitle);
+            } catch (err) {}
+          }
+
+          // Sync visit history
+          if (embeddedVisitHistory && Array.isArray(embeddedVisitHistory)) {
+            try {
+              localStorage.setItem('carp_visit_history', JSON.stringify(embeddedVisitHistory));
+            } catch (err) {}
+          }
+
+          // Sync custom external resource links
+          if (embeddedCustomResources && Array.isArray(embeddedCustomResources)) {
+            try {
+              localStorage.setItem('custom_external_resources', JSON.stringify(embeddedCustomResources));
+              setCustomExternalResources(embeddedCustomResources);
+            } catch (err) {}
           }
 
           if (embeddedDownloadId) {
@@ -371,11 +459,13 @@ export default function App() {
           <InicioView
             students={students}
             resources={resources}
+            activities={activities}
             setActiveTab={setActiveTab}
             openPlanningModal={() => handleOpenPlanningModal()}
             onDownloadResource={handleDownloadResource}
             onDownloadSite={handleDownloadSite}
             isExporting={isExporting}
+            onDeleteCustomResource={handleDeleteCustomExternalResource}
           />
         );
       case 'domiciliarios':
@@ -432,15 +522,31 @@ export default function App() {
           <InicioView
             students={students}
             resources={resources}
+            activities={activities}
             setActiveTab={setActiveTab}
             openPlanningModal={() => handleOpenPlanningModal()}
             onDownloadResource={handleDownloadResource}
             onDownloadSite={handleDownloadSite}
             isExporting={isExporting}
+            onDeleteCustomResource={handleDeleteCustomExternalResource}
           />
         );
     }
   };
+
+  if (!isDBLoaded) {
+    return (
+      <div className="bg-background min-h-screen text-on-surface flex flex-col items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="space-y-1">
+            <p className="text-sm font-extrabold text-primary">Cargando Carpeta Didáctica</p>
+            <p className="text-xs text-on-surface-variant font-medium">Sincronizando planillas y alumnos...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background min-h-screen text-on-surface flex flex-col font-sans transition-colors">
@@ -459,8 +565,9 @@ export default function App() {
         <div className="flex items-center gap-2">
           <img
             alt="Carpeta Didáctica"
-            className="h-8 w-auto object-contain"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwZERkGTNHLFi2jlAE8-jRQUKCW07vkVuKz-Lv9R8jpUVfdY-ylHyBi8-mfy7T5Vb2gD9kauq08cR_fLT8k-aYCdnfO10RU-srYJCjyvQ8tnFJ6cfmc_yvzS4rizRU0ExeTZSDrUMWgcGsYtk064npNbbxG7HxOocNnx08nlJh8hF7tzk71iosUfRBJRsjl6gSDSD_oNNoi4y7cDCKeJA6aqIesvYRsZszRmrra6CdK_TGsGZUt3oyVwMi8-AUpXXW-Jk6L1ZDkxQ"
+            className="h-8 w-8 object-cover rounded-md border border-outline/5 shadow-sm shrink-0"
+            src={logoImg}
+            referrerPolicy="no-referrer"
           />
           <h2 className="font-headline font-bold text-base text-primary">Carpeta Didáctica</h2>
         </div>

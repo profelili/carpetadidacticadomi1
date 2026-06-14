@@ -12,39 +12,37 @@ async function startServer() {
   app.use(express.json({ limit: '100mb' }));
 
   // API Route - Generates and downloads the single-file compiled HTML
-  app.post('/api/download-single-html', async (req, res) => {
+  app.all('/api/download-single-html', async (req, res) => {
     try {
-      const { students, activities } = req.body;
+      const { students, activities } = req.body || {};
       const distIndex = path.join(process.cwd(), 'dist', 'index.html');
 
-      // Always trigger a build on-demand to guarantee that any visual edits, code changes, or static asset modifications are compiled into the exported file
-      console.log('Launching on-demand compilation to ensure the single HTML file has the latest visual changes...');
-      await new Promise<void>((resolve, reject) => {
-        exec('npx vite build', (err, stdout, stderr) => {
-          if (err) {
-            console.error('On-demand vite build failed:', stderr || err.message);
-            // If development build fails but we have an old build as a fallback, we can use it, otherwise reject
-            if (fs.existsSync(distIndex)) {
-              console.warn('Vite build failed, falling back to existing dist file');
-              resolve();
-            } else {
+      // Check if pre-built file exists
+      if (!fs.existsSync(distIndex)) {
+        console.log('dist/index.html not found. Building on-demand...');
+        await new Promise<void>((resolve, reject) => {
+          exec('npx vite build', (err, stdout, stderr) => {
+            if (err) {
+              console.error('On-demand vite build failed:', stderr || err.message);
               reject(err);
+            } else {
+              console.log('On-demand build compiled successfully!');
+              resolve();
             }
-          } else {
-            console.log('On-demand build compiled successfully!');
-            resolve();
-          }
+          });
         });
-      });
+      }
 
       // Read compiled single-file index.html
       let html = fs.readFileSync(distIndex, 'utf8');
 
       // Inject data payload if provided
       if (students || activities) {
-        const escapedStudentsJSON = students ? JSON.stringify(students).replace(/<\/script>/g, '<\\/script>') : '[]';
-        const escapedActivitiesJSON = activities ? JSON.stringify(activities).replace(/<\/script>/g, '<\\/script>') : '[]';
+        const escapedStudentsJSON = students ? JSON.stringify(students).replace(new RegExp('</' + 'script>', 'g'), '<\\/script>') : '[]';
+        const escapedActivitiesJSON = activities ? JSON.stringify(activities).replace(new RegExp('</' + 'script>', 'g'), '<\\/script>') : '[]';
         const downloadId = String(Date.now());
+
+        const closeScriptTag = String.fromCharCode(60, 47, 115, 99, 114, 105, 112, 116, 62);
 
         const payloadScript = `
 <!-- AUTOMATIC DATA INJECTION IN SINGLE-FILE DEPLOYMENT -->
@@ -53,18 +51,23 @@ async function startServer() {
   window.OFFLINE_ACTIVITIES = ${escapedActivitiesJSON};
   window.OFFLINE_DOWNLOAD_ID = "${downloadId}";
   console.log('Datos offline embebidos listos para cargar en la carpeta didáctica.');
-</script>
-`;
-        // Inject script inside <head> to run before page load
-        if (html.includes('</head>')) {
-          html = html.replace('</head>', `${payloadScript}\n</head>`);
+` + closeScriptTag + `\n`;
+
+        // Inject script inside <head> securely at the very beginning of the head using split-literal to avoid JS inlining
+        const headTagName = ['<', 'head', '>'].join('');
+        const headOpenIndex = html.indexOf(headTagName);
+        if (headOpenIndex !== -1) {
+          html = html.substring(0, headOpenIndex + headTagName.length) + '\n' + payloadScript + html.substring(headOpenIndex + headTagName.length);
         } else {
-          html = html.replace('<body>', `<body>\n${payloadScript}`);
+          html = payloadScript + html;
         }
       }
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="carpeta_didactica.html"');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.send(html);
     } catch (err: any) {
       console.error('Error in single-file HTML generation route:', err);

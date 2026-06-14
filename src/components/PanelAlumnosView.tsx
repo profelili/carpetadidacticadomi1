@@ -41,6 +41,7 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
   const [contexto, setContexto] = useState<ContextType>('Domicilio');
   const [salaDetail, setSalaDetail] = useState('');
   const [ultimaClase, setUltimaClase] = useState('06/06/2026');
+  const [estado, setEstado] = useState('Activo');
 
   // Submit adding
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,6 +62,7 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
       contexto,
       salaDetail: contexto === 'Hospital' ? salaDetail : undefined,
       ultimaClase,
+      estado,
     });
 
     // Reset
@@ -73,6 +75,7 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
     setDiagnostico('');
     setContexto('Domicilio');
     setSalaDetail('');
+    setEstado('Activo');
     setShowAddForm(false);
     showToast('Alumno registrado exitosamente.', 'success');
   };
@@ -242,14 +245,14 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-on-surface-variant">Fecha de Nacimiento</label>
               <input
                 type="date"
                 value={fechaNac}
                 onChange={e => setFechaNac(e.target.value)}
-                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary"
+                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary w-full text-on-surface"
               />
             </div>
 
@@ -260,7 +263,7 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
                 value={escuela}
                 onChange={e => setEscuela(e.target.value)}
                 placeholder="Ej: EP N° 4"
-                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary"
+                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary w-full text-on-surface"
                 required
               />
             </div>
@@ -270,11 +273,24 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
               <select
                 value={contexto}
                 onChange={e => setContexto(e.target.value as ContextType)}
-                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary"
+                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary w-full text-on-surface font-semibold"
               >
                 <option value="Domicilio">Domicilio</option>
                 <option value="Hospital">Hospital</option>
                 <option value="Hogar">Hogar Juanito</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-on-surface-variant">Estado *</label>
+              <select
+                value={estado}
+                onChange={e => setEstado(e.target.value)}
+                className="rounded-xl border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary w-full text-on-surface font-semibold"
+              >
+                <option value="Activo">Activo</option>
+                <option value="Alta médica">Alta médica</option>
+                <option value="Inactivo">Inactivo</option>
               </select>
             </div>
           </div>
@@ -377,9 +393,20 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
                       </span>
                     </div>
                   </div>
-                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${contextBadgeClass}`}>
-                    {student.contexto}
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0 text-right">
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${contextBadgeClass}`}>
+                      {student.contexto}
+                    </span>
+                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                      (student.estado || 'Activo') === 'Alta médica' 
+                        ? 'bg-teal-55 border-teal-200 text-teal-700 dark:bg-teal-950/20 dark:border-teal-900 dark:text-teal-300' 
+                        : (student.estado || 'Activo') === 'Activo'
+                        ? 'bg-green-55 border-green-200 text-green-700 dark:bg-green-950/20 dark:border-green-900 dark:text-green-300'
+                        : 'bg-rose-55 border-rose-205 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-300'
+                    }`}>
+                      {student.estado || 'Activo'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-xs pt-3 border-t border-outline-variant/30">
@@ -531,7 +558,7 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-on-surface-variant">Escuela de Origen *</label>
                   <input
@@ -548,11 +575,24 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
                   <select
                     value={editingStudent.contexto}
                     onChange={(e) => setEditingStudent({ ...editingStudent, contexto: e.target.value as ContextType })}
-                    className="rounded-xl border border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary outline-none p-2.5 text-on-surface"
+                    className="rounded-xl border border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary outline-none p-2.5 text-on-surface font-semibold"
                   >
                     <option value="Domicilio">Domicilio</option>
                     <option value="Hospital">Hospital</option>
                     <option value="Hogar">Hogar Juanito</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-on-surface-variant">Estado *</label>
+                  <select
+                    value={editingStudent.estado || 'Activo'}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, estado: e.target.value })}
+                    className="rounded-xl border border-outline-variant bg-surface text-xs focus:ring-1 focus:ring-primary outline-none p-2.5 text-on-surface font-semibold"
+                  >
+                    <option value="Activo">Activo</option>
+                    <option value="Alta médica">Alta médica</option>
+                    <option value="Inactivo">Inactivo</option>
                   </select>
                 </div>
               </div>
@@ -733,7 +773,13 @@ export const PanelAlumnosView: React.FC<PanelAlumnosViewProps> = ({
                 <div className="space-y-1 text-[11px]">
                   <p className="text-on-surface-variant">Ubicación / Sala: <span className="font-bold text-on-surface block truncate">{viewingStudentExpediente.salaDetail || 'No requiere registro clínico'}</span></p>
                   <p className="text-on-surface-variant">Seguimiento: <span className="font-bold text-on-surface block sm:inline">{viewingStudentExpediente.fechaProxVisita || 'Automático'} {viewingStudentExpediente.horaProxVisita || ''}</span></p>
-                  <p className="text-on-surface-variant">Estado: <span className="font-bold text-green-600 block sm:inline">{viewingStudentExpediente.estado || 'Activo'}</span></p>
+                  <p className="text-on-surface-variant">Estado: <span className={`font-bold block sm:inline ${
+                    (viewingStudentExpediente.estado || 'Activo') === 'Alta médica'
+                      ? 'text-teal-600 dark:text-teal-400'
+                      : (viewingStudentExpediente.estado || 'Activo') === 'Activo'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-rose-600 dark:text-rose-400'
+                  }`}>{viewingStudentExpediente.estado || 'Activo'}</span></p>
                 </div>
               </div>
             </div>

@@ -116,7 +116,7 @@ export const INITIAL_STUDENTS: Student[] = [
     contexto: 'Hospital',
     salaDetail: 'Hospital Fernández - Cama 310',
     avatarInitials: 'MJ',
-    estado: 'Activo',
+    estado: 'Alta médica',
     ultimaClase: '28/05/2026',
     observaciones: {
       titulo1: 'Salud Integral',
@@ -267,7 +267,7 @@ export const DEFAULT_RESOURCES: ResourceMaterial[] = [
   },
   {
     id: 'res-3',
-    titulo: 'Efemérides: Set de la Revolución de 1810',
+    titulo: 'Efemérides: Semana de la Revolución de 1810',
     descripcion: 'Colección de escenas históricas vectoriales desglosadas en rompecabezas imprimibles y crucigramas adaptados.',
     materia: 'C. Sociales',
     imageUrl: revolucion1810Img
@@ -322,9 +322,9 @@ export const DEFAULT_RESOURCES: ResourceMaterial[] = [
   {
     id: 'res-10',
     titulo: 'App Sofía Circle',
-    descripcion: 'Pizarra interactiva del círculo multiplicador Waldorf online. Selecciona una tabla (del 0 al 9), elige el color de hilo y pinta la figura generada para experimentar la hermosa simetría geométrica de las matemáticas.',
+    descripcion: 'Pizarra interactiva del círculo multiplicador Waldorf online, creada por la Prof. Maria Liliana Alvarez (autoría propia). Selecciona una tabla (del 0 al 9), elige el color de hilo y pinta la figura generada para experimentar la hermosa simetría geométrica de las matemáticas.',
     materia: 'Matemática',
-    url: 'https://sofia.school',
+    url: 'https://sofy-math-circle.netlify.app/',
     imageUrl: sofiaCircleImg
   }
 ];
